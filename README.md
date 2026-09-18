@@ -1,29 +1,96 @@
-# Digital Mental Health & Psychological Support System
+# MindCare Digital Mental Health & Psychological Support System
+<p align="center">
+  <strong>A digital mental-health support platform designed to make student wellbeing support more accessible, private, and easier to reach.</strong>
+</p>
 
-## Project Overview
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#system-architecture">Architecture</a> •
+  <a href="#technology-stack">Tech Stack</a> •
+  <a href="#installation--setup">Setup</a> •
+  <a href="#api-overview">API</a> •
+  <a href="#future-enhancements">Roadmap</a>
+</p>
 
-This project is a **web-based mental health support platform** designed for college students. It provides an AI-driven conversational companion, self-help resources, mood tracking, and access to professional counselling. The goal is to make mental health support more **accessible, confidential, and engaging** for students.
+<p align="center">
+  <!-- Replace these badges with your actual repository information -->
+  <img src="https://img.shields.io/badge/Status-In%20Development-orange" alt="Project Status">
+  <img src="https://img.shields.io/badge/Frontend-React.js-blue" alt="Frontend">
+  <img src="https://img.shields.io/badge/Backend-Node.js-green" alt="Backend">
+  <img src="https://img.shields.io/badge/Database-PostgreSQL-316192" alt="Database">
+  <img src="https://img.shields.io/badge/API-REST-6DB33F" alt="REST API">
+</p>
 
-## Problem Statement
+---
+## Table of Contents
 
-College students face increasing levels of **stress, anxiety, burnout, and loneliness**, especially during exam periods or personal challenges. Traditional counselling services are often limited, stigmatized, or hard to access. Students may hesitate to seek help due to fear or privacy concerns. There is a need for a **scalable, anonymous, and supportive system** to help students cope with common mental health issues and seek professional help when needed.
+- [Overview](#overview)
+- [Problem Statement](#problem-statement)
+- [Objectives](#objectives)
+- [Features](#features)
+- [User Roles](#user-roles)
+- [System Workflow](#system-workflow)
+- [System Architecture](#system-architecture)
+- [Technology Stack](#technology-stack)
+- [Database Design](#database-design)
+- [API Overview](#api-overview)
+- [Project Structure](#project-structure)
+- [Installation & Setup](#installation--setup)
+- [Environment Variables](#environment-variables)
+- [Testing](#testing)
+- [Security & Privacy](#security--privacy)
+- [Limitations](#limitations)
+- [Future Enhancements](#future-enhancements)
+- [Team](#team)
+- [License](#license)
 
-## Objectives
+---
+## Overview
 
-- **Provide immediate support:** Offer students a friendly AI chat companion that listens empathetically and suggests coping strategies.  
-- **Increase accessibility:** Enable students to access mental-health guidance anytime, anywhere, without stigma.  
-- **Promote self-care:** Encourage regular mood tracking and journaling to build self-awareness.  
-- **Facilitate professional help:** Allow easy booking of confidential counselling sessions when serious issues are detected.  
-- **Ensure privacy and security:** Protect user data and ensure any personal information is kept private and confidential.  
+**Digital Mental Health & Psychological Support System** is a web-based platform designed to help college students access mental-health support in a convenient and confidential environment.
+
+The platform combines an **AI-powered conversational companion**, **mood tracking**, **private journaling**, **self-help resources**, and **professional counselling access** in a single application.
+
+The system follows a **hybrid AI + human support model**:
+
+> **AI provides accessible first-line support and information, while professional counsellors provide human assistance when additional support is required.**
+
+# Problem Statement
+
+College students increasingly experience challenges such as:
+
+- Academic and examination stress
+- Anxiety and emotional distress
+- Burnout
+- Loneliness and social isolation
+- Difficulty accessing counselling services
+- Fear of stigma or lack of privacy
+
+Traditional support systems may not always be available at the exact moment a student needs help.
+
+The proposed system provides a **digital first-line support platform** that allows students to access self-help resources, track their wellbeing, communicate with an AI companion, and connect with professional counsellors when necessary.
+
+---
+
+# Objectives
+
+The primary objectives of the project are:
+
+| Objective | Description |
+|---|---|
+| **Immediate Support** | Provide an AI conversational interface for general emotional support and wellbeing guidance |
+| **Accessibility** | Make support resources available anytime through a web platform |
+| **Self-Awareness** | Allow students to track moods and maintain private journals |
+| **Professional Support** | Provide access to counsellors and appointment booking |
+| **Safety** | Identify potential risk signals and provide appropriate safety guidance |
+| **Privacy** | Minimize unnecessary collection and exposure of personal information |
+
+---
 
 ## Scope of the Project
 
 - **Included (MVP):** Student registration and login; an AI chat interface for mental-health support; a curated self-help resource library; mood tracking and journaling features; confidential counsellor booking; and an admin dashboard with anonymized usage statistics.  
 - **Excluded / Not Implemented Yet:** Audio or voice interaction; social peer-to-peer forums; advanced gamification or reward systems; multi-language support beyond initial implementation; integration with external medical systems. These may be added as future enhancements.
-
-## Proposed Solution
-
-We propose a **hybrid AI-human platform**. Students interact with an **AI chatbot** to discuss their feelings and stressors. The AI uses a controlled knowledge base (via Retrieval-Augmented Generation) to provide **evidence-based coping strategies** (like breathing exercises, study planning, or mindfulness tips) and to gently encourage healthy habits. Meanwhile, the system monitors risk signals (e.g., signs of severe distress) using predefined rules and asks additional questions. If needed, it suggests professional help. Students can also browse **educational resources** (articles, videos) on topics like stress and anxiety. If a student indicates significant issues, they can **book an appointment** with a human counsellor through the platform. An **admin dashboard** provides anonymized insights (e.g., most common issues, usage trends) to help the institution plan support initiatives. Overall, the solution combines the **scalability of AI** with the **safety of human oversight**.
 
 ## Functional Requirements
 
