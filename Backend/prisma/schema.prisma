@@ -1,48 +1,295 @@
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
+// ================================
+// ENUMS
+// ================================
+
 enum UserRole {
-    STUDENT
-    COUNSELLOR
-    ADMIN
+  STUDENT
+  COUNSELLOR
+  ADMIN
 }
 
 enum UserStatus {
-    ACTIVE
-    INACTIVE
-    SUSPENDED
+  ACTIVE
+  INACTIVE
+  SUSPENDED
 }
 
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum SenderType {
+  STUDENT
+  AI
+}
+
+enum RiskLevel {
+  LOW
+  MODERATE
+  HIGH
+}
+
+enum ResourceType {
+  ARTICLE
+  GUIDE
+  EXERCISE
+  VIDEO
+  LINK
+}
+
+// ================================
+// IDENTITY
+// ================================
+
 model User {
-    id           String     @id @default(uuid()) @db.Uuid
-    email        String     @unique
-    passwordHash String
-    role         UserRole   @default(STUDENT)
-    status       UserStatus @default(ACTIVE)
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String     @unique
+  passwordHash String
+  role         UserRole   @default(STUDENT)
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-    createdAt    DateTime   @default(now())
-    updatedAt    DateTime   @updatedAt
-
-    profile      Profile?
+  // Relationships
+  profile        Profile?
+  counsellor     Counsellor?
+  conversations  Conversation[]
+  moodEntries    MoodEntry[]
+  journalEntries JournalEntry[]
+  appointments   Appointment[]
 }
 
 model Profile {
-    id          String   @id @default(uuid()) @db.Uuid
-    userId      String   @unique @db.Uuid
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  fullName  String
+  phone     String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    fullName    String
-    phone       String?
-    dateOfBirth DateTime?
-    avatarUrl   String?
+  // Relationship
+  // Decision: profile is owned by the user. Deleting the user deletes the profile.
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+// ================================
+// COUNSELLING
+// ================================
 
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Counsellor {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @db.Uuid
+  bio             String?
+  specialization  String?
+  qualification   String?
+  experienceYears Int?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Decision: a counsellor record cannot exist without its user account.
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  availabilitySlots AvailabilitySlot[]
+}
+
+model AvailabilitySlot {
+  id           String   @id @default(uuid()) @db.Uuid
+  counsellorId String   @db.Uuid
+  startAt      DateTime
+  endAt        DateTime
+  isAvailable  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Decision: slots belong to a counsellor; removing the counsellor removes their slots.
+  counsellor  Counsellor   @relation(fields: [counsellorId], references: [id], onDelete: Cascade)
+  appointment Appointment?
+
+  @@index([counsellorId, startAt])
+}
+
+model Appointment {
+  id          String            @id @default(uuid()) @db.Uuid
+  studentId   String            @db.Uuid
+  slotId      String            @unique @db.Uuid
+  status      AppointmentStatus @default(PENDING)
+  meetingLink String?
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Decision: keep the appointment record even if the student account is later
+  // deactivated/deleted, since it is part of the counsellor's historical record.
+  // Restrict prevents deleting a user who still has appointments; the application
+  // should soft-delete/deactivate users instead of hard-deleting them.
+  student User             @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  slot    AvailabilitySlot @relation(fields: [slotId], references: [id], onDelete: Restrict)
+
+  @@index([studentId, status])
+}
+
+// ================================
+// AI CHAT
+// ================================
+
+model Conversation {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Decision: conversations are private user data. Deleting the user (e.g. account
+  // deletion / right-to-erasure request) cascades to their conversations.
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([userId, createdAt])
+}
+
+model Message {
+  id             String     @id @default(uuid()) @db.Uuid
+  conversationId String     @db.Uuid
+  sender         SenderType
+  content        String
+  createdAt      DateTime   @default(now())
+
+  // Decision: messages are owned by the conversation. Intentionally deleting a
+  // conversation deletes its messages (matches the privacy requirement that a
+  // user can erase a whole conversation).
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  riskAssessment RiskAssessment?
+
+  @@index([conversationId, createdAt])
+}
+
+model RiskAssessment {
+  id        String    @id @default(uuid()) @db.Uuid
+  messageId String    @unique @db.Uuid
+  riskLevel RiskLevel
+  riskCode  String?
+  reason    String?
+  createdAt DateTime  @default(now())
+
+  // Decision: a risk assessment cannot outlive the message it was computed from.
+  // Note: this is a support-tool signal, not a clinical/medical diagnosis.
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+// ================================
+// WELLBEING
+// ================================
+
+model MoodEntry {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  moodScore   Int
+  stressScore Int
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Decision: mood entries are private; cascade on user deletion.
+  // moodScore / stressScore are expected to be 1-5; enforce in application layer
+  // and optionally with a raw-SQL CHECK constraint added via a custom migration,
+  // e.g.: ALTER TABLE "MoodEntry" ADD CONSTRAINT mood_score_range
+  //       CHECK ("moodScore" BETWEEN 1 AND 5 AND "stressScore" BETWEEN 1 AND 5);
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model JournalEntry {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  title     String?
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Decision: journals are the most sensitive data in the system. Cascade on user
+  // deletion so no orphaned private content remains. Never expose in analytics.
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// ================================
+// RESOURCES
+// ================================
+
+model ResourceCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  resources Resource[]
+}
+
+model Resource {
+  id         String       @id @default(uuid()) @db.Uuid
+  categoryId String       @db.Uuid
+  title      String
+  content    String?
+  type       ResourceType @default(ARTICLE)
+  url        String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  // Decision: a category with existing resources cannot be deleted directly;
+  // resources must be re-categorized or removed first (protects published content).
+  category ResourceCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([categoryId])
+}
+
+// ================================
+// RAG KNOWLEDGE BASE
+// ================================
+
+model KnowledgeDocument {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  description String?
+  sourceUrl   String?
+  category    String?
+  language    String?  @default("en")
+  content     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chunks KnowledgeChunk[]
+}
+
+model KnowledgeChunk {
+  id         String   @id @default(uuid()) @db.Uuid
+  documentId String   @db.Uuid
+  chunkText  String
+  chunkIndex Int
+  vectorId   String?
+  createdAt  DateTime @default(now())
+
+  // Decision: chunks are derived data owned by the document; cascade on delete.
+  // Embeddings/vector storage may live in a separate vector DB/service keyed by
+  // vectorId, so Prisma is intentionally not coupled to a specific vector provider.
+  document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
 }
