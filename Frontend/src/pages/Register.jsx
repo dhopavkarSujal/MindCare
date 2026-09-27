@@ -24,6 +24,7 @@ export default function Register() {
     useState(false);
 
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -44,9 +45,11 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const fullName = formData.fullName.trim();
+    const email = formData.email.trim().toLowerCase();
     if (
-      !formData.fullName ||
-      !formData.email ||
+      !fullName ||
+      !email ||
       !formData.password ||
       !formData.confirmPassword
     ) {
@@ -71,17 +74,22 @@ export default function Register() {
 
     try {
       setError("");
-
+      
       const data = await register(
-        formData.email,
+        email,
         formData.password,
-        formData.fullName
+        fullName
       );
 
       if (data.session) {
-        navigate("/dashboard");
+        navigate("/dashboard", {
+          state: {
+            successMessage:
+              "Account created successfully. Welcome to MindCare!",
+          },
+        });
       } else {
-        setError(
+        setSuccess(
           "Account created. Please verify your email before signing in."
         );
       }
@@ -95,6 +103,11 @@ export default function Register() {
         error?.message ||
           "Unable to create account."
       );
+      {success && (
+        <div className="mb-5 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {success}
+        </div>
+      )}
     }
   };
 
@@ -229,7 +242,7 @@ export default function Register() {
               {/* Full name */}
               <div>
 
-                <label className="text-sm font-medium text-slate-700">
+                <label htmlFor="register-fullname" className="text-sm font-medium text-slate-700">
                   Full name
                 </label>
 
@@ -241,6 +254,7 @@ export default function Register() {
                   />
 
                   <input
+                    id="register-fullname"
                     type="text"
                     name="fullName"
                     value={formData.fullName}
@@ -256,7 +270,7 @@ export default function Register() {
               {/* Email */}
               <div>
 
-                <label className="text-sm font-medium text-slate-700">
+                <label htmlFor="register-email" className="text-sm font-medium text-slate-700">
                   Email address
                 </label>
 
@@ -268,6 +282,7 @@ export default function Register() {
                   />
 
                   <input
+                    id="register-email"
                     type="email"
                     name="email"
                     value={formData.email}
@@ -283,7 +298,7 @@ export default function Register() {
               {/* Password */}
               <div>
 
-                <label className="text-sm font-medium text-slate-700">
+                <label htmlFor="register-password" className="text-sm font-medium text-slate-700">
                   Password
                 </label>
 
@@ -295,6 +310,7 @@ export default function Register() {
                   />
 
                   <input
+                    id="register-password"
                     type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
@@ -324,7 +340,7 @@ export default function Register() {
               {/* Confirm Password */}
               <div>
 
-                <label className="text-sm font-medium text-slate-700">
+                <label htmlFor="register-confirm-password" className="text-sm font-medium text-slate-700">
                   Confirm password
                 </label>
 
@@ -336,6 +352,7 @@ export default function Register() {
                   />
 
                   <input
+                    id="register-confirm-password"
                     type={
                       showConfirmPassword
                         ? "text"
@@ -373,6 +390,7 @@ export default function Register() {
 
                 <input
                   type="checkbox"
+                  required
                   className="mt-0.5 h-4 w-4 shrink-0 accent-[#0F766E]"
                 />
 

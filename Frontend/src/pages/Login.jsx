@@ -35,25 +35,27 @@ export default function Login() {
     setError("");
   };
 
-    const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.email || !formData.password) {
-      setError(
-        "Please enter your email and password."
-      );
+    const email = formData.email.trim().toLowerCase();
+    const password = formData.password;
+
+    if (!email || !password) {
+      setError("Please enter your email and password.");
       return;
     }
 
     try {
       setError("");
 
-      await login(
-        formData.email,
-        formData.password
-      );
+      await login(email, password);
 
-      navigate("/dashboard");
+      navigate("/dashboard", {
+        state: {
+          successMessage: "Login successful. Welcome back!",
+        },
+      });
     } catch (error) {
       console.error("Login error:", error);
 
@@ -62,7 +64,7 @@ export default function Login() {
           "Unable to sign in. Please check your credentials."
       );
     }
-  };    
+  }; 
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -190,7 +192,7 @@ export default function Login() {
               {/* Email */}
               <div>
 
-                <label className="text-sm font-medium text-slate-700">
+                <label htmlFor="login-email" className="text-sm font-medium text-slate-700">
                   Email address
                 </label>
 
@@ -202,6 +204,7 @@ export default function Login() {
                   />
 
                   <input
+                    id="login-email"
                     type="email"
                     name="email"
                     value={formData.email}
@@ -217,7 +220,7 @@ export default function Login() {
               {/* Password */}
               <div>
 
-                <label className="text-sm font-medium text-slate-700">
+                <label htmlFor="login-password" className="text-sm font-medium text-slate-700">
                   Password
                 </label>
 
@@ -229,6 +232,7 @@ export default function Login() {
                   />
 
                   <input
+                    id="login-password"
                     type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
@@ -256,27 +260,24 @@ export default function Login() {
               </div>
 
               {/* Options */}
-              <div className="flex items-center justify-between">
+              {/* <div className="flex items-center justify-between">
 
                 <label className="flex items-center gap-2 text-xs text-slate-500">
 
-                  <input
+                 <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-slate-300 accent-[#0F766E]"
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-[#0F766E]"
                   />
 
                   Remember me
 
                 </label>
 
-                <button
-                  type="button"
-                  className="text-xs font-medium text-[#0F766E] hover:underline"
-                >
+                <Link to="/login">
                   Forgot password?
-                </button>
+                </Link>
 
-              </div>
+              </div> */}
 
               {/* Submit */}
               <button
@@ -304,7 +305,6 @@ export default function Login() {
 
             <button
               type="button"
-              onClick={() => navigate("/dashboard")}
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-3.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               <span className="font-bold text-[#4285F4]">

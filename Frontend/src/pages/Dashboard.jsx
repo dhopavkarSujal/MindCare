@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   MessageCircle,
@@ -26,25 +26,13 @@ const moods = [
 
 export default function Dashboard() {
 
-  const navigate = useNavigate();
-
-  const [selectedMood, setSelectedMood] =
-    useState(null);
-
-  const [moodsData, setMoodsData] =
-    useState([]);
-
-  const [loadingMoods, setLoadingMoods] =
-    useState(true);
-
-  const [savingMood, setSavingMood] =
-      useState(false);
-
-    const [moodError, setMoodError] =
-      useState("");
-
-    const [moodSuccess, setMoodSuccess] =
-      useState("");
+  const [selectedMood, setSelectedMood] = useState(null);
+  const [moodsData, setMoodsData] = useState([]);
+  const [loadingMoods, setLoadingMoods] = useState(true);
+  const [savingMood, setSavingMood] = useState(false);
+  const [moodError, setMoodError] = useState("");
+  const [moodSuccess, setMoodSuccess] = useState("");
+  const [authSuccess, setAuthSuccess] = useState("");
 
     const loadMoods = useCallback(
     async () => {
@@ -136,6 +124,12 @@ export default function Dashboard() {
     <AppLayout activePath="/dashboard">
 
       <div className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
+
+        {authSuccess && (
+          <div className="mb-6 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+            {authSuccess}
+          </div>
+        )}
 
         {/* Greeting */}
         <section className="mb-8">

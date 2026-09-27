@@ -47,11 +47,11 @@ export default function Landing() {
           </Link>
 
           {/* Navigation */}
-          <div className="flex items-center gap-3">
+          <nav className="flex items-center gap-3" aria-label="Main navigation">
 
             <Link
               to="/login"
-              className="hidden rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-white hover:text-[#0F766E] sm:block"
+                className="rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-white hover:text-[#0F766E] sm:px-4"
             >
               Sign In
             </Link>
@@ -64,8 +64,7 @@ export default function Landing() {
               <ArrowRight size={16} />
             </Link>
 
-          </div>
-
+          </nav>
         </div>
 
       </header>
