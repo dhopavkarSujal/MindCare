@@ -1,5 +1,4 @@
 import api from "../lib/api";
-import { getCurrentUserId } from "./auth.service";
 
 export const getConversations = async () => {
   const response = await api.get("/conversations");
@@ -18,23 +17,13 @@ export const getConversation = async (
 };
 
 export const createConversation = async ({
-  title,
+  title = "New Support Session",
 }) => {
-  const userId = await getCurrentUserId();
-
-  const payload = {
-    title,
-    userId,
-  };
-
-  console.log(
-    "Creating conversation with:",
-    payload
-  );
-
   const response = await api.post(
     "/conversations",
-    payload
+    {
+      title,
+    }
   );
 
   return response.data;

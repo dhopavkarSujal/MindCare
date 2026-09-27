@@ -313,12 +313,14 @@ export default function Chat() {
         response;
 
       const assistantMessage = {
-        id: `assistant-${Date.now()}`,
+        id:
+          data?.aiMessage?.id ||
+          `assistant-${Date.now()}`,
+
         role: "assistant",
+
         content:
-          data?.message ||
-          data?.response ||
-          data?.content ||
+          data?.aiMessage?.text ||
           "I received your message.",
       };
 
