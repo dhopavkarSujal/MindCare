@@ -1,0 +1,175 @@
+// ==========================================
+// 1. DATABASE & GENERATOR CONFIGURATION
+// ==========================================
+datasource db {
+  provider = "postgresql"
+  url      = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum Role {
+  STUDENT
+  COUNSELOR
+  ADMIN
+}
+
+enum Sender {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// ==========================================
+// USER / PROFILE
+// ==========================================
+
+model User {
+  id String @id @default(uuid()) @db.Uuid
+
+  email String  @unique
+  name  String?
+
+  // Supabase Auth user ID
+  supabaseAuthId String? @unique @db.Uuid
+
+  role Role @default(STUDENT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  conversations Conversation[]
+  moodLogs      MoodLog[]
+
+  @@index([role])
+}
+
+// ==========================================
+// CHAT CONVERSATION
+// ==========================================
+
+model Conversation {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+
+  title String @default("New Support Session")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  messages Message[]
+
+  @@index([userId])
+  @@index([updatedAt])
+}
+
+// ==========================================
+// CHAT MESSAGE
+// ==========================================
+
+model Message {
+  id             String @id @default(uuid()) @db.Uuid
+  conversationId String @db.Uuid
+
+  sender Sender
+  text   String @db.Text
+
+  createdAt DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  analysis AnalysisLog?
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+// ==========================================
+// NLP + SAFETY ANALYSIS
+// ==========================================
+
+model AnalysisLog {
+  id        String @id @default(uuid()) @db.Uuid
+  messageId String @unique @db.Uuid
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  // Sentiment
+  sentiment      String
+  sentimentScore Float?
+
+  // Emotion
+  emotion      String
+  emotionScore Float?
+
+  // Intent
+  intent String
+
+  // Safety
+  riskLevel RiskLevel @default(LOW)
+  isCrisis  Boolean   @default(false)
+  riskScore Float?
+
+  // Overall model confidence
+  confidence Float?
+
+  // Optional complete AI response
+  rawResponse Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([emotion])
+  @@index([intent])
+  @@index([riskLevel])
+  @@index([createdAt])
+}
+
+// ==========================================
+// MOOD TRACKING
+// ==========================================
+
+model MoodLog {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  score Int
+  note  String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ==========================================
+// SELF-HELP RESOURCES
+// ==========================================
+
+model Resource {
+  id String @id @default(uuid()) @db.Uuid
+
+  title       String
+  category    String
+  content     String  @db.Text
+  externalUrl String?
+
+  createdAt DateTime @default(now())
+
+  @@index([category])
+}
