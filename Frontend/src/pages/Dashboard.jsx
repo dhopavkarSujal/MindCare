@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
 import {
   ArrowRight,
   MessageCircle,
@@ -24,7 +26,46 @@ const moods = [
   { value: 5, label: "Great", emoji: "😄" },
 ];
 
+  const getLast7DaysMoods = (data) => {
+    const now = new Date();
+
+    const start = new Date();
+    start.setDate(now.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+
+    return data
+      .filter((mood) => {
+        const value = mood.createdAt ?? mood.created_at;
+        const date = new Date(value);
+
+        return (
+          !Number.isNaN(date.getTime()) &&
+          date >= start &&
+          date <= now
+        );
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt ?? a.created_at) -
+          new Date(b.createdAt ?? b.created_at)
+      );
+  };
+  
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const location = useLocation();
+
+  const displayName = user?.fullName || "there";
+
+  const hour = new Date().getHours();
+
+  const greeting =
+    hour < 12
+      ? "Good morning"
+      : hour < 18
+      ? "Good afternoon"
+      : "Good evening";
 
   const [selectedMood, setSelectedMood] = useState(null);
   const [moodsData, setMoodsData] = useState([]);
@@ -33,8 +74,32 @@ export default function Dashboard() {
   const [moodError, setMoodError] = useState("");
   const [moodSuccess, setMoodSuccess] = useState("");
   const [authSuccess, setAuthSuccess] = useState("");
+  const last7DaysMoods = getLast7DaysMoods(moodsData);
 
-    const loadMoods = useCallback(
+  // Authentication success popup
+  useEffect(() => {
+    const message = location.state?.successMessage;
+
+    if (!message) {
+      return;
+    }
+
+    setAuthSuccess(message);
+
+    const timer = setTimeout(() => {
+      setAuthSuccess("");
+    }, 4000);
+
+    navigate(location.pathname, {
+      replace: true,
+      state: null,
+    });
+
+    return () => clearTimeout(timer);
+  }, [location, navigate]);
+
+  // Load moods
+   const loadMoods = useCallback(
     async () => {
       try {
         setLoadingMoods(true);
@@ -67,15 +132,14 @@ export default function Dashboard() {
       } finally {
         setLoadingMoods(false);
       }
-    },
-    []
-  );
+    },[]);
 
   useEffect(() => {
     loadMoods();
   }, [loadMoods]);
 
-    const handleSaveMood = async () => {
+  // Save mood
+  const handleSaveMood = async () => {
     if (!selectedMood) {
       return;
     }
@@ -95,14 +159,11 @@ export default function Dashboard() {
         response
       );
 
-      setMoodSuccess(
-        "Mood saved successfully."
-      );
+      setMoodSuccess("Mood saved successfully.");
 
       setSelectedMood(null);
 
       await loadMoods();
-
     } catch (error) {
       console.error(
         "Failed to save mood:",
@@ -118,7 +179,6 @@ export default function Dashboard() {
       setSavingMood(false);
     }
   };
-  
 
   return (
     <AppLayout activePath="/dashboard">
@@ -126,10 +186,35 @@ export default function Dashboard() {
       <div className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
 
         {authSuccess && (
-          <div className="mb-6 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-            {authSuccess}
+          <div className="fixed right-5 top-5 z-50 w-[calc(100%-2.5rem)] max-w-sm rounded-2xl border border-emerald-100 bg-white px-4 py-4 shadow-xl">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                ✓
+              </div>
+
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-slate-800">
+                  Success
+                </p>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  {authSuccess}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setAuthSuccess("")}
+                className="text-slate-400 transition hover:text-slate-600"
+                aria-label="Close notification"
+              >
+                ×
+              </button>
+            </div>
           </div>
         )}
+
+        <div className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8"></div>
 
         {/* Greeting */}
         <section className="mb-8">
@@ -139,7 +224,7 @@ export default function Dashboard() {
           </p>
 
           <h1 className="text-2xl font-semibold tracking-tight text-[#172033] sm:text-3xl">
-            Good afternoon, Sujal
+            {greeting}, {displayName}
           </h1>
 
           <p className="mt-2 max-w-xl text-sm leading-6 text-[#64748B]">
@@ -304,27 +389,23 @@ export default function Dashboard() {
             </div>
 
             {loadingMoods ? (
-              <div className="mt-6 flex h-24 items-center justify-center">
-                <p className="text-sm text-slate-400">
-                  Loading your mood history...
-                </p>
-              </div>
-            ) : moodsData.length === 0 ? (
-              <div className="mt-6 flex h-24 items-center justify-center rounded-xl bg-slate-50">
-                <p className="text-sm text-slate-400">
-                  No mood entries yet.
-                </p>
-              </div>
-            ) : (
-              <div className="mt-6 flex h-24 items-end gap-2">
+                <div className="mt-6 flex h-24 items-center justify-center">
+                  <p className="text-sm text-slate-400">
+                    Loading your mood history...
+                  </p>
+                </div>
+              ) : last7DaysMoods.length === 0 ? (
+                <div className="mt-6 flex h-24 items-center justify-center rounded-xl bg-slate-50">
+                  <p className="text-sm text-slate-400">
+                    No mood entries in the last 7 days.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-6 flex h-24 items-end gap-2">
 
-                {moodsData
-                  .slice(0, 7)
-                  .reverse()
-                  .map((mood, index) => {
+                  {last7DaysMoods.map((mood, index) => {
 
-                    const height =
-                      (mood.score / 5) * 100;
+                    const height = (mood.score / 5) * 100;
 
                     return (
                       <div
@@ -346,7 +427,7 @@ export default function Dashboard() {
                     );
                   })}
 
-              </div>
+                </div>
             )}
 
             <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">

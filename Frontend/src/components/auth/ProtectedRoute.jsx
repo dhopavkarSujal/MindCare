@@ -5,6 +5,7 @@ export default function ProtectedRoute({ children }) {
   const {
     isAuthenticated,
     loading,
+    authError,
   } = useAuth();
 
   if (loading) {
@@ -15,6 +16,22 @@ export default function ProtectedRoute({ children }) {
 
           <p className="text-sm text-slate-500">
             Loading MindCare...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (authError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC] px-5">
+        <div className="max-w-md text-center">
+          <h1 className="text-lg font-semibold text-slate-800">
+            Unable to connect
+          </h1>
+
+          <p className="mt-2 text-sm text-slate-500">
+            {authError}
           </p>
         </div>
       </div>

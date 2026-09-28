@@ -14,28 +14,36 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
 
   const fetchUserProfile = async () => {
-    try {
-      const response = await api.get("/auth/me");
+      try {
+        const response = await api.get("/auth/me");
 
-      const backendUser =
-        response.data?.data?.user;
+        const backendUser =
+          response.data?.data?.user;
 
-      setUser(backendUser || null);
+        setUser(backendUser || null);
 
-      return backendUser;
-    } catch (error) {
-      console.error(
-        "Failed to fetch user profile:",
-        error.response?.data || error.message
-      );
+        return backendUser;
+      } catch (error) {
+        console.error(
+          "Failed to fetch user profile:",
+          error.response?.status,
+          error.response?.data || error.message
+        );
 
-      setUser(null);
+        // User is genuinely unauthenticated
+        if (error.response?.status === 401) {
+          setUser(null);
+          return null;
+        }
 
-      return null;
-    }
-  };
+        // Backend / database / network / server problem
+        // Do NOT pretend the user is logged out.
+        throw error;
+      }
+    };
 
   useEffect(() => {
     let mounted = true;
@@ -51,12 +59,28 @@ export const AuthProvider = ({ children }) => {
         setSession(session);
 
         if (session) {
-          await fetchUserProfile();
+          try {
+            await fetchUserProfile();
+            setAuthError(null);
+          } catch (error) {
+            console.error(
+              "Unable to initialize user profile:",
+              error
+            );
+
+            setAuthError(
+              "Unable to connect to the MindCare server. Please try again."
+            );
+          }
         }
       } catch (error) {
         console.error(
           "Auth initialization error:",
           error
+        );
+
+        setAuthError(
+          "Unable to initialize authentication."
         );
       } finally {
         if (mounted) {
@@ -201,6 +225,7 @@ export const AuthProvider = ({ children }) => {
         user,
         session,
         loading,
+        authError,
 
         login,
         register,
