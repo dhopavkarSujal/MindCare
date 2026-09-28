@@ -16,8 +16,7 @@ export default function ChatWindow({
   onOpenSidebar,
 }) {
   return (
-    <section className="flex min-w-0 flex-1 flex-col">
-
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       {/* Header */}
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
 

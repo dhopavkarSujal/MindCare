@@ -580,8 +580,7 @@ export default function Chat() {
 
   return (
     <AppLayout activePath="/chat">
-      <div className="flex h-[calc(100vh-80px)] overflow-hidden">
-
+      <div className="flex h-full min-h-0 overflow-hidden">
         <ConversationSidebar
           conversations={conversations}
           selectedConversation={
@@ -612,7 +611,7 @@ export default function Chat() {
           }
         />
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
 
           {error && (
             <div className="border-b border-red-100 bg-red-50 px-4 py-2.5 text-center text-xs text-red-600">

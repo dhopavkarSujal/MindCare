@@ -35,7 +35,7 @@ export default function ConversationSidebar({
       <aside
         className={`
           fixed left-0 top-[80px] bottom-0 z-50
-          flex w-[290px] flex-col
+          flex min-h-0 w-[290px] flex-col
           border-r border-slate-200 bg-white
           transition-transform duration-300
 
