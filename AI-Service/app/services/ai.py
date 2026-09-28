@@ -105,7 +105,9 @@ Instructions:
 
     payload = {
         "model": MODEL,
-        "messages": messages
+        "messages": messages,
+        "max_tokens": 280,
+        "temperature": 0.4,
     }
 
     headers = {
