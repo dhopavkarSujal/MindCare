@@ -1,0 +1,14 @@
+{
+  "name": "mindcare-ai",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev:all",
+    "dev:all": "concurrently -n AI,BACKEND,FRONTEND \"npm run dev:ai\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:ai": "cd AI-Service && python main.py",
+    "dev:backend": "cd Backend && npm run dev",
+    "dev:frontend": "cd Frontend && npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

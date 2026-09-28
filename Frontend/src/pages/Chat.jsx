@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -26,8 +27,65 @@ const initialMessage = {
     "Hi, I'm MindCare. I'm here to listen. What would you like to talk about?",
 };
 
-export default function Chat() {
+  const normalizeMessages = (
+    messages = []
+  ) => {
+    return messages
+      .filter((message) => {
+        /*
+        * SYSTEM messages are database/internal messages.
+        * They should not be displayed as normal chat bubbles.
+        */
+        return message?.sender !== "SYSTEM";
+      })
+      .map((message, index) => {
+        let role;
 
+        switch (message?.sender) {
+          case "USER":
+            role = "user";
+            break;
+
+          case "ASSISTANT":
+            role = "assistant";
+            break;
+
+          default:
+            throw new Error(
+              `Invalid message sender at index ${index}: ${message?.sender}`
+            );
+        }
+
+        const content =
+          message?.text ??
+          message?.content ??
+          message?.message ??
+          "";
+
+        if (!content.trim()) {
+          throw new Error(
+            `Message at index ${index} has no content.`
+          );
+        }
+
+        return {
+          id:
+            message?.id ??
+            `${role}-${index}`,
+
+          role,
+
+          content,
+
+          createdAt:
+            message?.createdAt ??
+            message?.created_at ??
+            null,
+        };
+      });
+  };
+
+export default function Chat() {
   const [conversations, setConversations] =
     useState([]);
 
@@ -48,20 +106,28 @@ export default function Chat() {
   const [isTyping, setIsTyping] =
     useState(false);
 
+  const [creatingConversation, setCreatingConversation] =
+    useState(false);
+
+  const [mobileSidebarOpen, setMobileSidebarOpen] =
+    useState(false);
+
   const [error, setError] =
     useState("");
 
   /*
+   * Used to prevent an older conversation request
+   * from overwriting a newer conversation selection.
+   */
+  const conversationRequestRef =
+    useRef(0);
+
+  /*
    * Load conversation list
    */
-  useEffect(() => {
-    loadConversations();
-  }, []);
-
   const loadConversations = async () => {
     try {
       setLoadingConversations(true);
-      setError("");
 
       const response =
         await getConversations();
@@ -73,15 +139,39 @@ export default function Chat() {
 
       const data =
         response?.data ??
-        response ??
-        [];
+        response;
 
-      setConversations(
+      const updatedConversations =
         Array.isArray(data)
           ? data
-          : []
+          : [];
+
+      setConversations(
+        updatedConversations
       );
 
+      /*
+       * Keep the currently selected conversation
+       * synchronized with refreshed sidebar metadata.
+       */
+      setSelectedConversation((current) => {
+        if (!current) {
+          return current;
+        }
+
+        const updatedConversation =
+          updatedConversations.find(
+            (conversation) =>
+              conversation.id === current.id
+          );
+
+        return (
+          updatedConversation ??
+          current
+        );
+      });
+
+      return updatedConversations;
     } catch (error) {
       console.error(
         "Failed to load conversations:",
@@ -94,16 +184,30 @@ export default function Chat() {
           "Unable to load conversations."
       );
 
+      return [];
     } finally {
       setLoadingConversations(false);
     }
   };
 
   /*
+   * Initial conversation list
+   */
+  useEffect(() => {
+    loadConversations();
+  }, []);
+
+  /*
    * Open conversation
    */
   const handleSelectConversation =
     async (conversation) => {
+      /*
+       * Every new selection gets a new request ID.
+       * Older requests become stale.
+       */
+      const requestId =
+        ++conversationRequestRef.current;
 
       try {
         setSelectedConversation(
@@ -123,25 +227,41 @@ export default function Chat() {
           response
         );
 
+        /*
+         * Ignore an older response if the user
+         * already selected another conversation.
+         */
+        if (
+          requestId !==
+          conversationRequestRef.current
+        ) {
+          return;
+        }
+
         const data =
           response?.data ??
           response;
 
-        /*
-         * Adjust this according to your
-         * actual backend response shape.
-         */
         const loadedMessages =
-          data?.messages ??
-          [];
+          normalizeMessages(
+            data?.messages ?? []
+          );
 
         setMessages(
           loadedMessages.length
             ? loadedMessages
             : [initialMessage]
         );
-
       } catch (error) {
+        /*
+         * Ignore errors belonging to stale requests.
+         */
+        if (
+          requestId !==
+          conversationRequestRef.current
+        ) {
+          return;
+        }
 
         console.error(
           "Failed to load conversation:",
@@ -157,9 +277,17 @@ export default function Chat() {
         setMessages([
           initialMessage,
         ]);
-
       } finally {
-        setLoadingMessages(false);
+        /*
+         * Only the latest request can change
+         * the loading state.
+         */
+        if (
+          requestId ===
+          conversationRequestRef.current
+        ) {
+          setLoadingMessages(false);
+        }
       }
     };
 
@@ -168,14 +296,26 @@ export default function Chat() {
    */
   const handleNewConversation =
     async () => {
+      /*
+       * Prevent duplicate POST requests.
+       */
+      if (creatingConversation) {
+        return null;
+      }
 
       try {
+        setCreatingConversation(true);
         setError("");
+
+        /*
+         * A new conversation selection invalidates
+         * any previous conversation-loading request.
+         */
+        ++conversationRequestRef.current;
 
         const response =
           await createConversation({
-            title:
-              "New Support Session",
+            title: "New Support Session",
           });
 
         console.log(
@@ -186,6 +326,12 @@ export default function Chat() {
         const newConversation =
           response?.data ??
           response;
+
+        if (!newConversation?.id) {
+          throw new Error(
+            "Server did not return a valid conversation."
+          );
+        }
 
         setConversations((prev) => [
           newConversation,
@@ -200,30 +346,59 @@ export default function Chat() {
           initialMessage,
         ]);
 
+        setLoadingMessages(false);
+
+        return newConversation;
       } catch (error) {
-      console.error("Failed to create conversation:", error);
+        console.error(
+          "Failed to create conversation:",
+          error
+        );
 
-      console.error("Status:", error?.response?.status);
+        console.error(
+          "Status:",
+          error?.response?.status
+        );
 
-      console.error("Backend response:", error?.response?.data);
+        console.error(
+          "Backend response:",
+          error?.response?.data
+        );
 
-      setError(
-        error?.response?.data?.message ||
-          error?.response?.data?.error ||
-          error?.message ||
-          "Unable to create conversation."
-      );
-    }
-  };
+        setError(
+          error?.response?.data?.message ||
+            error?.response?.data?.error ||
+            error?.message ||
+            "Unable to create conversation."
+        );
+
+        return null;
+      } finally {
+        setCreatingConversation(false);
+      }
+    };
 
   /*
    * Delete conversation
    */
   const handleDeleteConversation =
     async (conversationId) => {
+      const confirmed =
+        window.confirm(
+          "Delete this conversation? This action cannot be undone."
+        );
+
+      if (!confirmed) {
+        return false;
+      }
+
+      /*
+       * Invalidate any conversation-loading request
+       * that may still be running for the deleted chat.
+       */
+      ++conversationRequestRef.current;
 
       try {
-
         await deleteConversation(
           conversationId
         );
@@ -247,8 +422,10 @@ export default function Chat() {
           setMessages([]);
         }
 
-      } catch (error) {
+        setLoadingMessages(false);
 
+        return true;
+      } catch (error) {
         console.error(
           "Failed to delete conversation:",
           error
@@ -259,6 +436,8 @@ export default function Chat() {
             error?.message ||
             "Unable to delete conversation."
         );
+
+        return false;
       }
     };
 
@@ -268,7 +447,6 @@ export default function Chat() {
   const handleSendMessage = async (
     content
   ) => {
-
     if (!content.trim()) {
       return;
     }
@@ -276,6 +454,14 @@ export default function Chat() {
     if (!selectedConversation) {
       return;
     }
+
+    /*
+     * Capture the conversation ID because the user
+     * could switch conversations while the AI request
+     * is still running.
+     */
+    const conversationId =
+      selectedConversation.id;
 
     const userMessage = {
       id: `user-${Date.now()}`,
@@ -295,11 +481,9 @@ export default function Chat() {
     setError("");
 
     try {
-
       const response =
         await sendMessage({
-          conversationId:
-            selectedConversation.id,
+          conversationId,
           message: content,
         });
 
@@ -312,36 +496,83 @@ export default function Chat() {
         response?.data ??
         response;
 
+      /*
+       * Strict AI response validation.
+       */
+      const aiMessage =
+        data?.aiMessage;
+
+      if (!aiMessage) {
+        throw new Error(
+          "AI response is missing from the server response."
+        );
+      }
+
       const assistantMessage = {
         id:
-          data?.aiMessage?.id ||
+          aiMessage.id ??
           `assistant-${Date.now()}`,
 
         role: "assistant",
 
         content:
-          data?.aiMessage?.text ||
-          "I received your message.",
+          aiMessage.content ??
+          aiMessage.text ??
+          aiMessage.message,
+
+        createdAt:
+          aiMessage.createdAt ??
+          aiMessage.created_at ??
+          null,
       };
 
-      setMessages((prev) => [
-        ...prev,
-        assistantMessage,
-      ]);
+      if (
+        !assistantMessage.content
+      ) {
+        throw new Error(
+          "AI response did not contain message content."
+        );
+      }
 
+      /*
+       * Only append the AI response if the user
+       * is still viewing the same conversation.
+       */
+      if (
+        selectedConversation?.id ===
+        conversationId
+      ) {
+        setMessages((prev) => [
+          ...prev,
+          assistantMessage,
+        ]);
+      }
+
+      /*
+       * Refresh sidebar metadata after the
+       * backend has processed the message.
+       */
+      await loadConversations();
     } catch (error) {
-
       console.error(
         "Failed to send message:",
         error
       );
 
-      setError(
-        error?.response?.data?.message ||
-          error?.message ||
-          "MindCare is currently unavailable."
-      );
-
+      /*
+       * Don't show an error on another conversation
+       * if the user switched while the request ran.
+       */
+      if (
+        selectedConversation?.id ===
+        conversationId
+      ) {
+        setError(
+          error?.response?.data?.message ||
+            error?.message ||
+            "MindCare is currently unavailable."
+        );
+      }
     } finally {
       setIsTyping(false);
     }
@@ -349,13 +580,10 @@ export default function Chat() {
 
   return (
     <AppLayout activePath="/chat">
-
       <div className="flex h-[calc(100vh-80px)] overflow-hidden">
 
         <ConversationSidebar
-          conversations={
-            conversations
-          }
+          conversations={conversations}
           selectedConversation={
             selectedConversation
           }
@@ -370,6 +598,17 @@ export default function Chat() {
           }
           onDelete={
             handleDeleteConversation
+          }
+          mobileOpen={
+            mobileSidebarOpen
+          }
+          onClose={() =>
+            setMobileSidebarOpen(
+              false
+            )
+          }
+          creatingConversation={
+            creatingConversation
           }
         />
 
@@ -393,12 +632,15 @@ export default function Chat() {
             onSend={
               handleSendMessage
             }
+            onOpenSidebar={() =>
+              setMobileSidebarOpen(
+                true
+              )
+            }
           />
 
         </div>
-
       </div>
-
     </AppLayout>
   );
 }

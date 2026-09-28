@@ -7,13 +7,22 @@ import { useState } from "react";
 export default function ChatInput({
   onSend,
   disabled = false,
+  hasConversation = true,
 }) {
-  const [message, setMessage] = useState("");
+  const [message, setMessage] =
+    useState("");
+
+  const isDisabled =
+    disabled || !hasConversation;
 
   const submitMessage = () => {
-    const trimmed = message.trim();
+    const trimmed =
+      message.trim();
 
-    if (!trimmed || disabled) {
+    if (
+      !trimmed ||
+      isDisabled
+    ) {
       return;
     }
 
@@ -21,7 +30,9 @@ export default function ChatInput({
     setMessage("");
   };
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (
+    event
+  ) => {
     if (
       event.key === "Enter" &&
       !event.shiftKey
@@ -33,7 +44,6 @@ export default function ChatInput({
 
   return (
     <div className="border-t border-slate-200 bg-white p-4">
-
       <div className="mx-auto max-w-3xl">
 
         <div className="flex items-end gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-2 transition focus-within:border-[#0F766E] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#DFF5F1]/60">
@@ -41,22 +51,35 @@ export default function ChatInput({
           <textarea
             value={message}
             onChange={(event) =>
-              setMessage(event.target.value)
+              setMessage(
+                event.target.value
+              )
             }
-            onKeyDown={handleKeyDown}
-            disabled={disabled}
+            onKeyDown={
+              handleKeyDown
+            }
+            disabled={isDisabled}
             rows={1}
-            placeholder="Type a message..."
+            placeholder={
+              !hasConversation
+                ? "Start or select a conversation..."
+                : disabled
+                  ? "MindCare is responding..."
+                  : "Type a message..."
+            }
             className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
           />
 
           <button
             type="button"
-            onClick={submitMessage}
+            onClick={
+              submitMessage
+            }
             disabled={
-              disabled ||
+              isDisabled ||
               !message.trim()
             }
+            aria-label="Send message"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0F766E] text-white transition hover:bg-[#115E59] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 active:scale-95"
           >
             <Send size={17} />
@@ -69,7 +92,6 @@ export default function ChatInput({
         </p>
 
       </div>
-
     </div>
   );
 }

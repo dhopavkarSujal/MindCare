@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import uvicorn
 
 from app.routes.chat import router as chat_router
 
@@ -18,7 +19,6 @@ app.include_router(
 
 @app.get("/")
 async def root():
-
     return {
         "message": "MindCare AI Service is running"
     }
@@ -26,8 +26,16 @@ async def root():
 
 @app.get("/health")
 async def health():
-
     return {
         "status": "ok",
         "service": "MindCare AI"
     }
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        app,
+        host="127.0.0.1",
+        port=8000,
+        reload=True
+    )
