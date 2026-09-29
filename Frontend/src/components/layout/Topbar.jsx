@@ -36,7 +36,7 @@ export default function Topbar() {
       </div>
 
       {/* Desktop search */}
-      <div className="relative hidden w-72 md:flex">
+      {/* <div className="relative hidden w-72 md:flex">
         <Search
           size={17}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -47,7 +47,7 @@ export default function Topbar() {
           placeholder="Search..."
           className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-[#0F766E] focus:bg-white"
         />
-      </div>
+      </div> */}
 
       {/* Right side */}
       <div className="ml-auto flex items-center gap-3">

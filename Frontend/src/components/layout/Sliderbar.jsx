@@ -9,7 +9,12 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { NavLink } from "react-router-dom";
+import {
+  NavLink,
+  useNavigate,
+} from "react-router-dom";
+
+import { useAuth } from "../../context/AuthContext";
 
 const navigation = [
   {
@@ -40,12 +45,26 @@ const navigation = [
 ];
 
 export default function Sliderbar() {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+
+      navigate("/login", {
+        replace: true,
+      });
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
   return (
     <aside className="hidden w-[250px] shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">
 
       {/* Logo */}
       <div className="flex h-20 items-center border-b border-slate-100 px-6">
-
         <div className="flex items-center gap-3">
 
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#DFF5F1]">
@@ -66,7 +85,6 @@ export default function Sliderbar() {
           </div>
 
         </div>
-
       </div>
 
       {/* Navigation */}
@@ -138,7 +156,11 @@ export default function Sliderbar() {
       {/* Logout */}
       <div className="border-t border-slate-100 p-4">
 
-        <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-red-50 hover:text-red-600">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-red-50 hover:text-red-600"
+        >
           <LogOut size={19} />
           Logout
         </button>
