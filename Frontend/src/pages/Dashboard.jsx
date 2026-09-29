@@ -56,7 +56,10 @@ export default function Dashboard() {
   const { user } = useAuth();
   const location = useLocation();
 
-  const displayName = user?.fullName || "there";
+  const displayName =
+    user?.fullName ||
+    user?.supabaseUser?.user_metadata?.full_name ||
+    "there";
 
   const hour = new Date().getHours();
 
