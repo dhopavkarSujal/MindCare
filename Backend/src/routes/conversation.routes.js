@@ -5,6 +5,7 @@ import {
   getUserConversationsController,
   getConversationController,
   updateConversationController,
+  toggleConversationPinController,
   deleteConversationController,
 } from "../controllers/conversation.controller.js";
 
@@ -55,9 +56,19 @@ router.get(
 );
 
 /**
+ * PATCH /api/conversations/:conversationId/pin
+ *
+ * Pin or unpin a conversation.
+ */
+router.patch(
+  "/:conversationId/pin",
+  toggleConversationPinController
+);
+
+/**
  * PATCH /api/conversations/:conversationId
  *
- * Update conversation title.
+ * Rename/update conversation title.
  */
 router.patch(
   "/:conversationId",
@@ -83,4 +94,5 @@ router.delete(
  * import conversationRoutes
  *   from "./routes/conversation.routes.js";
  */
+
 export default router;

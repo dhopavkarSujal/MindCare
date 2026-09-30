@@ -56,9 +56,14 @@ export async function getUserConversations(userId) {
     where: {
       userId,
     },
-    orderBy: {
-      updatedAt: "desc",
-    },
+    orderBy: [
+        {
+          isPinned: "desc",
+        },
+        {
+          updatedAt: "desc",
+        },
+      ],
     include: {
       _count: {
         select: {
@@ -169,6 +174,45 @@ export async function deleteConversation(userId, conversationId) {
   });
 
   return true;
+}
+
+/**
+ * Pin or unpin a conversation.
+ */
+export async function toggleConversationPin(
+  userId,
+  conversationId,
+  isPinned
+) {
+  const existingConversation =
+    await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        userId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!existingConversation) {
+    const error = new Error(
+      "Conversation not found."
+    );
+
+    error.statusCode = 404;
+
+    throw error;
+  }
+
+  return prisma.conversation.update({
+    where: {
+      id: conversationId,
+    },
+    data: {
+      isPinned,
+    },
+  });
 }
 
 /**

@@ -4,6 +4,7 @@ import {
   getConversationById,
   updateConversation,
   deleteConversation,
+  toggleConversationPin,
 } from "../services/conversation.service.js";
 
 /**
@@ -313,6 +314,91 @@ export async function updateConversationController(
       message:
         error.message ||
         "Failed to update conversation.",
+    });
+  }
+}
+
+/**
+ * PATCH /api/conversations/:conversationId/pin
+ *
+ * Pin or unpin a conversation.
+ */
+export async function toggleConversationPinController(
+  req,
+  res
+) {
+  try {
+    const userId = getUserId(req);
+    const { conversationId } = req.params;
+    const { isPinned } = req.body || {};
+
+    // ------------------------------------------
+    // Authentication check
+    // ------------------------------------------
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authenticated user is required.",
+      });
+    }
+
+    // ------------------------------------------
+    // Validate conversation ID
+    // ------------------------------------------
+
+    if (!conversationId) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "conversationId is required.",
+      });
+    }
+
+    // ------------------------------------------
+    // Validate pin value
+    // ------------------------------------------
+
+    if (typeof isPinned !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "isPinned must be a boolean.",
+      });
+    }
+
+    // ------------------------------------------
+    // Update pin state
+    // ------------------------------------------
+
+    const conversation =
+      await toggleConversationPin(
+        userId,
+        conversationId,
+        isPinned
+      );
+
+    return res.status(200).json({
+      success: true,
+      message: isPinned
+        ? "Conversation pinned successfully."
+        : "Conversation unpinned successfully.",
+      data: conversation,
+    });
+  } catch (error) {
+    console.error(
+      "Toggle conversation pin error:",
+      error
+    );
+
+    return res.status(
+      error.statusCode || 500
+    ).json({
+      success: false,
+      message:
+        error.message ||
+        "Failed to update conversation pin.",
     });
   }
 }

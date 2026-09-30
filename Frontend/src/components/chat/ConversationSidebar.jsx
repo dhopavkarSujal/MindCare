@@ -5,20 +5,65 @@ import {
   X,
 } from "lucide-react";
 
+import { useMemo, useState } from "react";
+
 import Button from "../common/Button";
 import ConversationItem from "./ConversationItem";
 
 export default function ConversationSidebar({
-  conversations,
+  conversations = [],
   selectedConversation,
   loading,
   onSelect,
   onNewConversation,
   onDelete,
+  onRename,
+  onTogglePin,
   mobileOpen = false,
   onClose,
   creatingConversation = false,
 }) {
+  const [searchTerm, setSearchTerm] =
+    useState("");
+
+  /*
+   * Filter conversations by title.
+   */
+  const filteredConversations =
+    useMemo(() => {
+      const query =
+        searchTerm.trim().toLowerCase();
+
+      if (!query) {
+        return conversations;
+      }
+
+      return conversations.filter(
+        (conversation) =>
+          conversation?.title
+            ?.toLowerCase()
+            .includes(query)
+      );
+    }, [
+      conversations,
+      searchTerm,
+    ]);
+
+  /*
+   * Separate pinned and recent conversations.
+   */
+  const pinnedConversations =
+    filteredConversations.filter(
+      (conversation) =>
+        conversation?.isPinned === true
+    );
+
+  const recentConversations =
+    filteredConversations.filter(
+      (conversation) =>
+        conversation?.isPinned !== true
+    );
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -51,7 +96,6 @@ export default function ConversationSidebar({
           }
         `}
       >
-
         {/* Header */}
         <div className="border-b border-slate-100 p-4">
 
@@ -80,10 +124,6 @@ export default function ConversationSidebar({
               const newConversation =
                 await onNewConversation?.();
 
-              /*
-               * Close the mobile drawer only after
-               * successful conversation creation.
-               */
               if (newConversation) {
                 onClose?.();
               }
@@ -108,6 +148,13 @@ export default function ConversationSidebar({
             />
 
             <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) =>
+                setSearchTerm(
+                  event.target.value
+                )
+              }
               placeholder="Search conversations..."
               className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-xs outline-none transition focus:border-[#0F766E] focus:bg-white"
             />
@@ -116,7 +163,7 @@ export default function ConversationSidebar({
         </div>
 
         {/* Conversation list */}
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
 
           <p className="mb-2 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
             Conversations
@@ -124,11 +171,15 @@ export default function ConversationSidebar({
 
           {loading ? (
             <div className="flex flex-col gap-2 px-2 py-3">
+
               <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
+
               <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
+
               <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
+
             </div>
-          ) : conversations.length === 0 ? (
+          ) : filteredConversations.length === 0 ? (
             <div className="px-3 py-10 text-center">
 
               <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-[#DFF5F1]">
@@ -139,49 +190,133 @@ export default function ConversationSidebar({
               </div>
 
               <p className="mt-3 text-sm font-medium text-[#172033]">
-                No conversations yet
+                {searchTerm.trim()
+                  ? "No matching conversations"
+                  : "No conversations yet"}
               </p>
 
               <p className="mt-1 text-xs leading-5 text-slate-400">
-                Start a new conversation with MindCare.
+                {searchTerm.trim()
+                  ? "Try another search term."
+                  : "Start a new conversation with MindCare."}
               </p>
 
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-5">
 
-              {conversations.map(
-                (conversation) => (
-                  <ConversationItem
-                    key={conversation.id}
-                    conversation={
-                      conversation
-                    }
-                    active={
-                      selectedConversation?.id ===
-                      conversation.id
-                    }
-                    onClick={async () => {
-                      await onSelect(
-                        conversation
-                      );
+              {/* =========================
+                  PINNED
+              ========================= */}
+              {pinnedConversations.length > 0 && (
+                <section>
 
-                      onClose?.();
-                    }}
-                    onDelete={async (
-                      conversationId
-                    ) => {
-                      const deleted =
-                        await onDelete?.(
-                          conversationId
-                        );
+                  <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    Pinned
+                  </p>
 
-                      if (deleted) {
-                        onClose?.();
-                      }
-                    }}
-                  />
-                )
+                  <div className="space-y-1">
+
+                    {pinnedConversations.map(
+                      (conversation) => (
+                        <ConversationItem
+                          key={conversation.id}
+                          conversation={
+                            conversation
+                          }
+                          active={
+                            selectedConversation?.id ===
+                            conversation.id
+                          }
+                          onClick={() => {
+                            onSelect(
+                              conversation
+                            );
+                            onClose?.();
+                          }}
+                          onDelete={
+                            async (
+                              conversationId
+                            ) => {
+                              const deleted =
+                                await onDelete?.(
+                                  conversationId
+                                );
+
+                              if (deleted) {
+                                onClose?.();
+                              }
+                            }
+                          }
+                          onRename={
+                            onRename
+                          }
+                          onTogglePin={
+                            onTogglePin
+                          }
+                        />
+                      )
+                    )}
+
+                  </div>
+                </section>
+              )}
+
+              {/* =========================
+                  RECENT
+              ========================= */}
+              {recentConversations.length > 0 && (
+                <section>
+
+                  <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    Recent
+                  </p>
+
+                  <div className="space-y-1">
+
+                    {recentConversations.map(
+                      (conversation) => (
+                        <ConversationItem
+                          key={conversation.id}
+                          conversation={
+                            conversation
+                          }
+                          active={
+                            selectedConversation?.id ===
+                            conversation.id
+                          }
+                          onClick={() => {
+                            onSelect(
+                              conversation
+                            );
+                            onClose?.();
+                          }}
+                          onDelete={
+                            async (
+                              conversationId
+                            ) => {
+                              const deleted =
+                                await onDelete?.(
+                                  conversationId
+                                );
+
+                              if (deleted) {
+                                onClose?.();
+                              }
+                            }
+                          }
+                          onRename={
+                            onRename
+                          }
+                          onTogglePin={
+                            onTogglePin
+                          }
+                        />
+                      )
+                    )}
+
+                  </div>
+                </section>
               )}
 
             </div>

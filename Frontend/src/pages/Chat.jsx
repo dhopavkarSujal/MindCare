@@ -4,22 +4,23 @@ import {
   useState,
 } from "react";
 
+import {
+  getConversations,
+  getConversation,
+  createConversation,
+  deleteConversation,
+  renameConversation,
+  toggleConversationPin,
+} from "../services/conversation.service";
+
 import AppLayout from "../components/layout/AppLayout";
 
 import ConversationSidebar from "../components/chat/ConversationSidebar";
 import ChatWindow from "../components/chat/ChatWindow";
 
 import {
-  getConversations,
-  getConversation,
-  createConversation,
-  deleteConversation,
-} from "../services/conversation.service";
-
-import {
   sendMessage,
 } from "../services/chat.service";
-
 const initialMessage = {
   id: "welcome-message",
   role: "assistant",
@@ -85,6 +86,103 @@ const initialMessage = {
       });
   };
 
+  const handleRenameConversation =
+  async (
+    conversationId,
+    newTitle
+  ) => {
+    const trimmedTitle =
+      newTitle.trim();
+
+    if (!trimmedTitle) {
+      return false;
+    }
+
+    try {
+      setError("");
+
+      const response =
+        await renameConversation(
+          conversationId,
+          trimmedTitle
+        );
+
+      const updatedConversation =
+        response?.data ??
+        response;
+
+      setConversations((prev) =>
+        prev.map((conversation) =>
+          conversation.id ===
+          conversationId
+            ? {
+                ...conversation,
+                ...updatedConversation,
+                title: trimmedTitle,
+              }
+            : conversation
+        )
+      );
+
+      setSelectedConversation(
+        (current) =>
+          current?.id === conversationId
+            ? {
+                ...current,
+                ...updatedConversation,
+                title: trimmedTitle,
+              }
+            : current
+      );
+
+      return true;
+    } catch (error) {
+      console.error(
+        "Failed to rename conversation:",
+        error
+      );
+
+      setError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to rename conversation."
+      );
+
+      return false;
+    }
+  };
+
+  const handleTogglePin =
+  async (
+    conversationId,
+    isPinned
+  ) => {
+    try {
+      setError("");
+
+      await toggleConversationPin(
+        conversationId,
+        isPinned
+      );
+
+      await loadConversations();
+
+      return true;
+    } catch (error) {
+      console.error(
+        "Failed to update conversation pin:",
+        error
+      );
+
+      setError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to update conversation pin."
+      );
+
+      return false;
+    }
+  };
 export default function Chat() {
   const [conversations, setConversations] =
     useState([]);
@@ -196,6 +294,99 @@ export default function Chat() {
   useEffect(() => {
     loadConversations();
   }, []);
+
+  const handleRenameConversation = async (
+    conversationId,
+    newTitle
+  ) => {
+    const trimmedTitle = newTitle.trim();
+
+    if (!trimmedTitle) {
+      return false;
+    }
+
+    try {
+      setError("");
+
+      const response =
+        await renameConversation(
+          conversationId,
+          trimmedTitle
+        );
+
+      const updatedConversation =
+        response?.data ??
+        response;
+
+      setConversations((prev) =>
+        prev.map((conversation) =>
+          conversation.id === conversationId
+            ? {
+                ...conversation,
+                ...updatedConversation,
+                title: trimmedTitle,
+              }
+            : conversation
+        )
+      );
+
+      setSelectedConversation((current) =>
+        current?.id === conversationId
+          ? {
+              ...current,
+              ...updatedConversation,
+              title: trimmedTitle,
+            }
+          : current
+      );
+
+      return true;
+    } catch (error) {
+      console.error(
+        "Failed to rename conversation:",
+        error
+      );
+
+      setError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to rename conversation."
+      );
+
+      return false;
+    }
+  };
+
+  const handleTogglePin = async (
+    conversationId,
+    isPinned
+  ) => {
+    try {
+      setError("");
+
+      await toggleConversationPin(
+        conversationId,
+        isPinned
+      );
+
+      await loadConversations();
+
+      return true;
+    } catch (error) {
+      console.error(
+        "Failed to update conversation pin:",
+        error
+      );
+
+      setError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to update conversation pin."
+      );
+
+      return false;
+    }
+  };
 
   /*
    * Open conversation
@@ -581,36 +772,24 @@ export default function Chat() {
   return (
     <AppLayout activePath="/chat">
       <div className="flex h-full min-h-0 overflow-hidden">
+        
         <ConversationSidebar
           conversations={conversations}
-          selectedConversation={
-            selectedConversation
-          }
-          loading={
-            loadingConversations
-          }
-          onSelect={
-            handleSelectConversation
-          }
-          onNewConversation={
-            handleNewConversation
-          }
-          onDelete={
-            handleDeleteConversation
-          }
-          mobileOpen={
-            mobileSidebarOpen
-          }
+          selectedConversation={selectedConversation}
+          loading={loadingConversations}
+          onSelect={handleSelectConversation}
+          onNewConversation={handleNewConversation}
+          onDelete={handleDeleteConversation}
+          onRename={handleRenameConversation}
+          onTogglePin={handleTogglePin}
+          mobileOpen={mobileSidebarOpen}
           onClose={() =>
-            setMobileSidebarOpen(
-              false
-            )
+            setMobileSidebarOpen(false)
           }
           creatingConversation={
             creatingConversation
           }
         />
-
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
 
           {error && (

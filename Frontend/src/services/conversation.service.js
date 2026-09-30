@@ -29,6 +29,22 @@ export const createConversation = async ({
   return response.data;
 };
 
+export const renameConversation =
+  async (
+    conversationId,
+    title
+  ) => {
+    const response =
+      await api.patch(
+        `/conversations/${conversationId}`,
+        {
+          title,
+        }
+      );
+
+    return response.data;
+  };
+
 export const deleteConversation = async (
   conversationId
 ) => {
@@ -38,3 +54,19 @@ export const deleteConversation = async (
 
   return response.data;
 };
+
+export const toggleConversationPin =
+  async (
+    conversationId,
+    isPinned
+  ) => {
+    const response =
+      await api.patch(
+        `/conversations/${conversationId}/pin`,
+        {
+          isPinned,
+        }
+      );
+
+    return response.data;
+  };

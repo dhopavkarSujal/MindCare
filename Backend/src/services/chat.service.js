@@ -9,6 +9,16 @@ import {
 } from "./ai.service.js";
 
 
+const TITLE_BY_INTENT = {
+  academic_stress: "Exam Stress",
+  exam_stress: "Exam Stress",
+  sleep_problem: "Sleep & Rest",
+  loneliness: "Feeling Lonely",
+  low_motivation: "Low Motivation",
+  coping_strategy: "Coping & Calm",
+  emotional_support: "Emotional Support",
+};
+
 /**
  * Convert FastAPI risk level into
  * the Prisma RiskLevel enum.
@@ -72,6 +82,7 @@ export async function processChatMessage({
 
       select: {
         id: true,
+        title: true,
       },
     });
 
@@ -269,18 +280,43 @@ export async function processChatMessage({
 
 
   // ==========================================
-  // 9. UPDATE CONVERSATION TIMESTAMP
+  // 9. UPDATE CONVERSATION
+  // ==========================================
+  //
+  // Automatically generate a meaningful title only
+  // while the conversation still has the default name.
+  //
+  // Once the user manually renames the conversation,
+  // the title will no longer be overwritten.
   // ==========================================
 
-  await prisma.conversation.update({
+  const isDefaultTitle =
+    conversation.title === "New Support Session";
 
+  const normalizedIntent =
+    String(aiResult.intent || "")
+      .trim()
+      .toLowerCase();
+
+  const generatedTitle =
+    TITLE_BY_INTENT[normalizedIntent] ||
+    "General Support";
+
+  const conversationUpdateData = {
+    updatedAt: new Date(),
+  };
+
+  if (isDefaultTitle) {
+    conversationUpdateData.title =
+      generatedTitle;
+  }
+
+  await prisma.conversation.update({
     where: {
       id: conversationId,
     },
 
-    data: {
-      updatedAt: new Date(),
-    },
+    data: conversationUpdateData,
   });
 
 
