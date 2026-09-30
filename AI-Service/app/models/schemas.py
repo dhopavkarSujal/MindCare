@@ -26,7 +26,15 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
 
+    # ==========================================
+    # AI RESPONSE
+    # ==========================================
+
     reply: str
+
+    # ==========================================
+    # NLP ANALYSIS
+    # ==========================================
 
     intent: str
 
@@ -35,6 +43,12 @@ class ChatResponse(BaseModel):
         "neutral",
         "negative"
     ]
+
+    emotion: str = "unknown"
+
+    # ==========================================
+    # SAFETY
+    # ==========================================
 
     risk_level: Literal[
         "low",
@@ -47,3 +61,29 @@ class ChatResponse(BaseModel):
         "support",
         "crisis"
     ]
+
+    # ==========================================
+    # CONVERSATION TITLE
+    # ==========================================
+
+    conversation_title: str = "New Support Session"
+
+    # ==========================================
+    # SCORES
+    # ==========================================
+
+    sentiment_score: float | None = None
+
+    emotion_score: float | None = None
+
+    risk_score: float | None = None
+
+    confidence: float | None = None
+
+    # ==========================================
+    # CONTEXT-AWARE SUGGESTIONS
+    # ==========================================
+
+    suggestions: list[str] = Field(
+        default_factory=list
+    )

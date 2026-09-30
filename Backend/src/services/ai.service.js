@@ -85,8 +85,8 @@ export async function generateChatResponse({
      */
 
     return {
-
-      reply: data.reply,
+      reply:
+        data.reply,
 
       intent:
         data.intent ?? null,
@@ -114,6 +114,14 @@ export async function generateChatResponse({
 
       confidence:
         data.confidence ?? null,
+
+      conversationTitle:
+        data.conversation_title ?? null,
+
+      suggestions:
+        Array.isArray(data.suggestions)
+          ? data.suggestions
+          : [],
 
       rawResponse:
         data,

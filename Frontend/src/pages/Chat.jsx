@@ -715,6 +715,12 @@ export default function Chat() {
           aiMessage.createdAt ??
           aiMessage.created_at ??
           null,
+
+        suggestions: Array.isArray(
+          data?.suggestions
+        )
+          ? data.suggestions
+          : [],
       };
 
       if (

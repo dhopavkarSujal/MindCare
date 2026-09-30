@@ -12,11 +12,33 @@ import {
 const TITLE_BY_INTENT = {
   academic_stress: "Exam Stress",
   exam_stress: "Exam Stress",
-  sleep_problem: "Sleep & Rest",
+  exam_anxiety: "Exam Anxiety",
+
+  sleep_problem: "Sleep Problems",
+
   loneliness: "Feeling Lonely",
+
   low_motivation: "Low Motivation",
+
   coping_strategy: "Coping & Calm",
+
   emotional_support: "Emotional Support",
+
+  anxiety: "Anxiety",
+
+  overthinking: "Overthinking",
+
+  relationship_problem: "Relationship Problems",
+
+  friendship_conflict: "Friendship Conflict",
+
+  family_pressure: "Family Pressure",
+
+  family_problem: "Family Problems",
+
+  study_motivation: "Study Motivation",
+
+  concentration_problem: "Study Concentration",
 };
 
 /**
@@ -43,6 +65,147 @@ function normalizeRiskLevel(
   }
 }
 
+const GENERIC_TITLES = new Set([
+  "general support",
+  "support",
+  "general conversation",
+  "conversation",
+  "chat",
+  "new support session",
+]);
+
+function isGenericTitle(title) {
+  if (!title) {
+    return true;
+  }
+
+  return GENERIC_TITLES.has(
+    title.trim().toLowerCase()
+  );
+}
+
+
+function generateFallbackTitle({
+  message,
+  context = [],
+  intent,
+}) {
+
+  const historyText = context
+    .map((item) => item.text || "")
+    .join(" ");
+
+  const combinedText = `
+    ${historyText}
+    ${message}
+  `
+    .toLowerCase();
+
+  // ==========================================
+  // ACADEMIC / EXAM
+  // ==========================================
+
+  if (
+    combinedText.includes("exam") ||
+    combinedText.includes("test") ||
+    combinedText.includes("study") ||
+    combinedText.includes("college") ||
+    combinedText.includes("assignment")
+  ) {
+
+    if (
+      combinedText.includes("fail") ||
+      combinedText.includes("scared") ||
+      combinedText.includes("panic") ||
+      combinedText.includes("anxious") ||
+      combinedText.includes("nervous")
+    ) {
+      return "Exam Anxiety";
+    }
+
+    return "Academic Stress";
+  }
+
+  // ==========================================
+  // SLEEP
+  // ==========================================
+
+  if (
+    combinedText.includes("sleep") ||
+    combinedText.includes("insomnia") ||
+    combinedText.includes("can't sleep")
+  ) {
+    return "Sleep Problems";
+  }
+
+  // ==========================================
+  // OVERTHINKING
+  // ==========================================
+
+  if (
+    combinedText.includes("overthink") ||
+    combinedText.includes("overthinking") ||
+    combinedText.includes("can't stop thinking")
+  ) {
+    return "Overthinking";
+  }
+
+  // ==========================================
+  // LONELINESS
+  // ==========================================
+
+  if (
+    combinedText.includes("lonely") ||
+    combinedText.includes("alone") ||
+    combinedText.includes("nobody to talk")
+  ) {
+    return "Feeling Lonely";
+  }
+
+  // ==========================================
+  // MOTIVATION
+  // ==========================================
+
+  if (
+    combinedText.includes("motivation") ||
+    combinedText.includes("motivated")
+  ) {
+    return "Low Motivation";
+  }
+
+  // ==========================================
+  // FAMILY
+  // ==========================================
+
+  if (
+    combinedText.includes("family") ||
+    combinedText.includes("parents") ||
+    combinedText.includes("mother") ||
+    combinedText.includes("father")
+  ) {
+    return "Family Problems";
+  }
+
+  // ==========================================
+  // FRIENDSHIP
+  // ==========================================
+
+  if (
+    combinedText.includes("friend") ||
+    combinedText.includes("friendship")
+  ) {
+    return "Friendship Problems";
+  }
+
+  // ==========================================
+  // INTENT FALLBACK
+  // ==========================================
+
+  return (
+    TITLE_BY_INTENT[intent] ||
+    null
+  );
+}
 
 /**
  * Process a complete chat interaction.
@@ -278,35 +441,53 @@ export async function processChatMessage({
       },
     });
 
-
-  // ==========================================
-  // 9. UPDATE CONVERSATION
-  // ==========================================
-  //
-  // Automatically generate a meaningful title only
-  // while the conversation still has the default name.
-  //
-  // Once the user manually renames the conversation,
-  // the title will no longer be overwritten.
+    // ==========================================
+  // 9. UPDATE CONVERSATION TITLE
   // ==========================================
 
   const isDefaultTitle =
-    conversation.title === "New Support Session";
+    conversation.title ===
+    "New Support Session";
 
   const normalizedIntent =
-    String(aiResult.intent || "")
+    String(
+      aiResult.intent || ""
+    )
       .trim()
       .toLowerCase();
 
+  const aiGeneratedTitle =
+    String(
+      aiResult.conversationTitle || ""
+    ).trim();
+
+  const usableAiTitle =
+    aiGeneratedTitle &&
+    !isGenericTitle(
+      aiGeneratedTitle
+    )
+      ? aiGeneratedTitle
+      : null;
+
+  const fallbackTitle =
+    generateFallbackTitle({
+      message: cleanedMessage,
+      context,
+      intent: normalizedIntent,
+    });
+
   const generatedTitle =
-    TITLE_BY_INTENT[normalizedIntent] ||
-    "General Support";
+    usableAiTitle ||
+    fallbackTitle;
 
   const conversationUpdateData = {
     updatedAt: new Date(),
   };
 
-  if (isDefaultTitle) {
+  if (
+    isDefaultTitle &&
+    generatedTitle
+  ) {
     conversationUpdateData.title =
       generatedTitle;
   }
@@ -319,18 +500,19 @@ export async function processChatMessage({
     data: conversationUpdateData,
   });
 
-
   // ==========================================
   // 10. RETURN RESULT
   // ==========================================
-
   return {
-
     userMessage,
 
     aiMessage,
 
     analysis,
+
+    conversationTitle:
+      generatedTitle ||
+      conversation.title,
 
     action:
       aiResult.action,
@@ -343,5 +525,11 @@ export async function processChatMessage({
 
     sentiment:
       aiResult.sentiment,
+
+    emotion:
+      aiResult.emotion,
+
+    suggestions:
+      aiResult.suggestions || [],
   };
 }

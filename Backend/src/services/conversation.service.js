@@ -224,7 +224,7 @@ export async function toggleConversationPin(
 export async function getConversationContext(
   userId,
   conversationId,
-  limit = 20
+  limit = 10
 ) {
   const conversation = await prisma.conversation.findFirst({
     where: {
