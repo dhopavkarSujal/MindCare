@@ -62,6 +62,14 @@ class ChatResponse(BaseModel):
         "crisis"
     ]
 
+    # Identifies which response engine generated the reply.
+    source: Literal[
+        "template",
+        "retrieval",
+        "llm",
+        "crisis"
+    ] = "llm"
+
     # ==========================================
     # CONVERSATION TITLE
     # ==========================================

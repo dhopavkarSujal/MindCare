@@ -1,5 +1,7 @@
 from app.services.ai import generate_ai_response
+from app.services.complexity import detect_complexity
 from app.services.intent import detect_intent
+from app.services.response_templates import get_template_response
 from app.services.risk import detect_risk
 from app.services.safety import detect_immediate_risk
 from app.services.sentiment import detect_sentiment
@@ -15,12 +17,14 @@ emergency or crisis support if you may be in danger.
 Please do not stay alone if you feel that you may act on
 these thoughts.
 """
+
+
 def process_message(
     message: str,
-    history: list[dict]
+    history: list[dict],
 ) -> dict:
 
-    # Run safety and classification before response generation.
+    # Run the safety gate before any normal response processing.
     is_high_risk = detect_immediate_risk(message)
 
     if is_high_risk:
@@ -31,6 +35,7 @@ def process_message(
             "emotion": "unknown",
             "risk_level": "high",
             "action": "crisis",
+            "source": "crisis",
             "conversation_title": "Crisis Support",
             "sentiment_score": None,
             "emotion_score": None,
@@ -40,10 +45,41 @@ def process_message(
         }
 
     intent = detect_intent(message)
+
     sentiment = detect_sentiment(message)
+
     risk_level = detect_risk(message)
 
-    # Use the LLM as the fallback while the router is being built.
+    # Classify complexity before selecting the response engine.
+    complexity = detect_complexity(
+        message=message,
+        intent=intent,
+        risk_level=risk_level,
+        history=history,
+    )
+
+    # Use a local response when the message is simple and safe.
+    if complexity == "simple":
+        template_reply = get_template_response(intent)
+
+        if template_reply:
+            return {
+                "reply": template_reply,
+                "intent": intent,
+                "sentiment": sentiment,
+                "emotion": "unknown",
+                "risk_level": risk_level,
+                "action": "normal",
+                "source": "template",
+                "conversation_title": "New Support Session",
+                "sentiment_score": None,
+                "emotion_score": None,
+                "risk_score": 0.0,
+                "confidence": 1.0,
+                "suggestions": [],
+            }
+
+    # Use the LLM when contextual or complex handling is required.
     ai_result = generate_ai_response(
         message=message,
         history=history,
@@ -59,4 +95,5 @@ def process_message(
             if risk_level == "medium"
             else "normal"
         ),
+        "source": "llm",
     }

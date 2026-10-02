@@ -60,6 +60,8 @@ def chat(request: ChatRequest):
 
             action=result["action"],
 
+            source=result.get("source", "llm"),
+
             conversation_title=result[
                 "conversation_title"
             ],
