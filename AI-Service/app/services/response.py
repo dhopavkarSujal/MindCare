@@ -15,97 +15,48 @@ emergency or crisis support if you may be in danger.
 Please do not stay alone if you feel that you may act on
 these thoughts.
 """
-
-
 def process_message(
     message: str,
     history: list[dict]
-):
-    """
-    Main MindCare AI pipeline.
+) -> dict:
 
-    Flow:
-
-        Message
-            ↓
-        Safety
-            ↓
-        Intent
-            ↓
-        Sentiment
-            ↓
-        Risk
-            ↓
-        AI Response
-    """
-
-    # ==========================================
-    # 1. IMMEDIATE SAFETY CHECK
-    # ==========================================
-
-    is_high_risk = detect_immediate_risk(
-        message
-    )
+    # Run safety and classification before response generation.
+    is_high_risk = detect_immediate_risk(message)
 
     if is_high_risk:
-
         return {
             "reply": CRISIS_RESPONSE.strip(),
             "intent": "crisis",
             "sentiment": "negative",
+            "emotion": "unknown",
             "risk_level": "high",
-            "action": "crisis"
+            "action": "crisis",
+            "conversation_title": "Crisis Support",
+            "sentiment_score": None,
+            "emotion_score": None,
+            "risk_score": 1.0,
+            "confidence": 1.0,
+            "suggestions": [],
         }
 
-    # ==========================================
-    # 2. INTENT DETECTION
-    # ==========================================
+    intent = detect_intent(message)
+    sentiment = detect_sentiment(message)
+    risk_level = detect_risk(message)
 
-    intent = detect_intent(
-        message
-    )
-
-    # ==========================================
-    # 3. SENTIMENT DETECTION
-    # ==========================================
-
-    sentiment = detect_sentiment(
-        message
-    )
-
-    # ==========================================
-    # 4. RISK DETECTION
-    # ==========================================
-
-    risk_level = detect_risk(
-        message
-    )
-
-    # ==========================================
-    # 5. AI RESPONSE
-    # ==========================================
-
-    reply = generate_ai_response(
+    # Use the LLM as the fallback while the router is being built.
+    ai_result = generate_ai_response(
         message=message,
         history=history,
-        intent=intent,
-        sentiment=sentiment,
-        risk_level=risk_level
     )
 
-    # ==========================================
-    # 6. FINAL RESULT
-    # ==========================================
-
-    action = "normal"
-
-    if risk_level == "medium":
-        action = "support"
-
     return {
-        "reply": reply,
+        **ai_result,
         "intent": intent,
         "sentiment": sentiment,
         "risk_level": risk_level,
-        "action": action
+        "action": (
+            "support"
+            if risk_level == "medium"
+            else "normal"
+        ),
     }
