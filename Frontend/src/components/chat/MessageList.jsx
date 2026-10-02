@@ -6,6 +6,7 @@ import TypingIndicator from "./TypingIndicator";
 export default function MessageList({
   messages,
   isTyping,
+  onSuggestionClick,
 }) {
   const bottomRef = useRef(null);
 
@@ -24,6 +25,9 @@ export default function MessageList({
           <MessageBubble
             key={message.id}
             message={message}
+            onSuggestionClick={
+              onSuggestionClick
+            }
           />
         ))}
 

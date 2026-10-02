@@ -13,6 +13,7 @@ export default function ChatWindow({
   loadingMessages,
   isTyping,
   onSend,
+  onSuggestionClick,
   onOpenSidebar,
 }) {
   return (
@@ -89,6 +90,9 @@ export default function ChatWindow({
         <MessageList
           messages={messages}
           isTyping={isTyping}
+          onSuggestionClick={
+            onSuggestionClick
+          }
         />
       )}
 

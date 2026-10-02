@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 
 export default function MessageBubble({
   message,
+  onSuggestionClick,
 }) {
   const isUser =
     message.role === "user";
@@ -185,8 +186,12 @@ export default function MessageBubble({
                     <button
                       key={`${suggestion}-${index}`}
                       type="button"
-                      disabled
-                      className="rounded-xl border border-[#BFE8E2] bg-white px-3 py-2 text-left text-xs font-medium text-[#0F766E] shadow-sm transition"
+                      onClick={() =>
+                        onSuggestionClick?.(
+                          suggestion
+                        )
+                      }
+                      className="rounded-xl border border-[#BFE8E2] bg-white px-3 py-2 text-left text-xs font-medium text-[#0F766E] shadow-sm transition hover:border-[#0F766E] hover:bg-[#F0FDFA] hover:shadow-md active:scale-[0.98]"
                     >
                       {suggestion}
                     </button>

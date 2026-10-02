@@ -774,7 +774,24 @@ export default function Chat() {
       setIsTyping(false);
     }
   };
+    const handleSuggestionClick = async (
+    suggestion
+  ) => {
+    const trimmedSuggestion =
+      suggestion?.trim();
 
+    if (
+      !trimmedSuggestion ||
+      !selectedConversation ||
+      isTyping
+    ) {
+      return;
+    }
+
+    await handleSendMessage(
+      trimmedSuggestion
+    );
+  };
   return (
     <AppLayout activePath="/chat">
       <div className="flex h-full min-h-0 overflow-hidden">
@@ -815,6 +832,9 @@ export default function Chat() {
             isTyping={isTyping}
             onSend={
               handleSendMessage
+            }
+            onSuggestionClick={
+              handleSuggestionClick
             }
             onOpenSidebar={() =>
               setMobileSidebarOpen(
