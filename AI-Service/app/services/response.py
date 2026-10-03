@@ -24,9 +24,13 @@ def process_message(
     history: list[dict],
 ) -> dict:
 
-    # Run the safety gate before any normal response processing.
+    # Safety gate runs before any normal processing.
     is_high_risk = detect_immediate_risk(message)
-
+    print(
+        f"[ROUTER] message={message!r} "
+        f"high_risk={is_high_risk}"
+    )
+    
     if is_high_risk:
         return {
             "reply": CRISIS_RESPONSE.strip(),
@@ -45,12 +49,9 @@ def process_message(
         }
 
     intent = detect_intent(message)
-
     sentiment = detect_sentiment(message)
-
     risk_level = detect_risk(message)
 
-    # Classify complexity before selecting the response engine.
     complexity = detect_complexity(
         message=message,
         intent=intent,
@@ -58,7 +59,7 @@ def process_message(
         history=history,
     )
 
-    # Use a local response when the message is simple and safe.
+    # Handle local responses without calling the LLM.
     if complexity == "simple":
         template_reply = get_template_response(intent)
 
@@ -79,7 +80,7 @@ def process_message(
                 "suggestions": [],
             }
 
-    # Use the LLM when contextual or complex handling is required.
+    # Only complex contextual messages reach the LLM.
     ai_result = generate_ai_response(
         message=message,
         history=history,
