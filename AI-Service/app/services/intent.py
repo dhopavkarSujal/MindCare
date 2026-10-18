@@ -1,6 +1,4 @@
 import re
-
-
 INTENT_PATTERNS = {
     "exam_stress": [
         r"\bexam\b",
@@ -13,8 +11,11 @@ INTENT_PATTERNS = {
         r"\bstudying\b",
         r"\bmarks\b",
         r"\bgrade\b",
+        r"\bgrades\b",
         r"\bresult\b",
-        r"\bcollege\b"
+        r"\bresults\b",
+        r"\bcollege exam\b",
+        r"\bexam stress\b",
     ],
 
     "anxiety": [
@@ -26,19 +27,22 @@ INTENT_PATTERNS = {
         r"\boverwhelmed\b",
         r"\boverthinking\b",
         r"\bpanic\b",
+        r"\bpanicking\b",
         r"\bnervous\b",
-        r"\bscared\b"
+        r"\bscared\b",
     ],
 
     "loneliness": [
         r"\blonely\b",
         r"\bloneliness\b",
-        r"\balone\b",
+        r"\bfeel alone\b",
+        r"\bfeeling alone\b",
         r"\bno friends\b",
         r"\bnobody\b",
         r"\bno one\b",
         r"\bnoone\b",
-        r"\bisolated\b"
+        r"\bisolated\b",
+        r"\bfeel disconnected\b",
     ],
 
     "sadness": [
@@ -47,7 +51,8 @@ INTENT_PATTERNS = {
         r"\bcrying\b",
         r"\bempty\b",
         r"\bupset\b",
-        r"\bdown\b"
+        r"\bfeeling down\b",
+        r"\bfeel down\b",
     ],
 
     "low_motivation": [
@@ -58,16 +63,40 @@ INTENT_PATTERNS = {
         r"\bdon't want to study\b",
         r"\bdo not want to study\b",
         r"\bno energy\b",
-        r"\bcan't do anything\b"
+        r"\bcan't do anything\b",
+        r"\bcant do anything\b",
+        r"\bcan't get started\b",
+        r"\bcan't focus\b",
+        r"\bcant focus\b",
     ],
 
     "sleep_problem": [
         r"\bcan't sleep\b",
         r"\bcant sleep\b",
         r"\bcan't fall asleep\b",
-        r"\bsleep\b",
+        r"\bcant fall asleep\b",
         r"\binsomnia\b",
-        r"\bawake all night\b"
+        r"\bawake all night\b",
+        r"\btrouble sleeping\b",
+        r"\bhaving trouble sleeping\b",
+    ],
+
+    "coping_strategy": [
+        r"\bhow can i relax\b",
+        r"\bhow do i relax\b",
+        r"\bhelp me relax\b",
+        r"\bways to relax\b",
+        r"\bhow can i calm down\b",
+        r"\bhow do i calm down\b",
+        r"\bhelp me calm down\b",
+        r"\bcalm down\b",
+        r"\brelaxation\b",
+        r"\bbreathing exercise\b",
+        r"\bbreathing exercises\b",
+        r"\bhow can i cope\b",
+        r"\bhow do i cope\b",
+        r"\bhow can i manage stress\b",
+        r"\bhow do i manage stress\b",
     ],
 
     "anger": [
@@ -76,7 +105,7 @@ INTENT_PATTERNS = {
         r"\bfrustrated\b",
         r"\bfrustration\b",
         r"\birritated\b",
-        r"\bannoyed\b"
+        r"\bannoyed\b",
     ],
 
     "relationship_stress": [
@@ -86,7 +115,8 @@ INTENT_PATTERNS = {
         r"\bboyfriend\b",
         r"\bpartner\b",
         r"\bheartbroken\b",
-        r"\bcheated\b"
+        r"\bcheated\b",
+        r"\bcheating\b",
     ],
 
     "family_stress": [
@@ -94,29 +124,29 @@ INTENT_PATTERNS = {
         r"\bparents\b",
         r"\bmother\b",
         r"\bfather\b",
-        r"\bhome\b",
-        r"\bparent\b"
+        r"\bparent\b",
+        r"\bparental pressure\b",
+        r"\bparents expect\b",
     ],
 
     "financial_stress": [
-        r"\bmoney\b",
-        r"\bfinancial\b",
+        r"\bmoney problems\b",
+        r"\bfinancial stress\b",
+        r"\bfinancial problem\b",
         r"\bfees\b",
         r"\bdebt\b",
-        r"\bjob\b",
-        r"\bunemployed\b"
-    ]
+        r"\bunemployed\b",
+        r"\bcan't afford\b",
+        r"\bcant afford\b",
+    ],
 }
 
 
 def detect_intent(text: str) -> str:
-
     text = text.lower().strip()
 
     for intent, patterns in INTENT_PATTERNS.items():
-
         for pattern in patterns:
-
             if re.search(pattern, text):
                 return intent
 

@@ -1,5 +1,7 @@
 from app.services.ai import generate_ai_response
+from app.services.complexity import detect_complexity
 from app.services.intent import detect_intent
+from app.services.response_templates import get_template_response
 from app.services.risk import detect_risk
 from app.services.safety import detect_immediate_risk
 from app.services.sentiment import detect_sentiment
@@ -19,93 +21,80 @@ these thoughts.
 
 def process_message(
     message: str,
-    history: list[dict]
-):
-    """
-    Main MindCare AI pipeline.
+    history: list[dict],
+) -> dict:
 
-    Flow:
-
-        Message
-            ↓
-        Safety
-            ↓
-        Intent
-            ↓
-        Sentiment
-            ↓
-        Risk
-            ↓
-        AI Response
-    """
-
-    # ==========================================
-    # 1. IMMEDIATE SAFETY CHECK
-    # ==========================================
-
-    is_high_risk = detect_immediate_risk(
-        message
+    # Safety gate runs before any normal processing.
+    is_high_risk = detect_immediate_risk(message)
+    print(
+        f"[ROUTER] message={message!r} "
+        f"high_risk={is_high_risk}"
     )
-
+    
     if is_high_risk:
-
         return {
             "reply": CRISIS_RESPONSE.strip(),
             "intent": "crisis",
             "sentiment": "negative",
+            "emotion": "unknown",
             "risk_level": "high",
-            "action": "crisis"
+            "action": "crisis",
+            "source": "crisis",
+            "conversation_title": "Crisis Support",
+            "sentiment_score": None,
+            "emotion_score": None,
+            "risk_score": 1.0,
+            "confidence": 1.0,
+            "suggestions": [],
         }
 
-    # ==========================================
-    # 2. INTENT DETECTION
-    # ==========================================
+    intent = detect_intent(message)
+    sentiment = detect_sentiment(message)
+    risk_level = detect_risk(message)
 
-    intent = detect_intent(
-        message
+    complexity = detect_complexity(
+        message=message,
+        intent=intent,
+        risk_level=risk_level,
+        history=history,
     )
 
-    # ==========================================
-    # 3. SENTIMENT DETECTION
-    # ==========================================
+    # Handle local responses without calling the LLM.
+    if complexity == "simple":
+        template_reply = get_template_response(intent)
 
-    sentiment = detect_sentiment(
-        message
-    )
+        if template_reply:
+            return {
+                "reply": template_reply,
+                "intent": intent,
+                "sentiment": sentiment,
+                "emotion": "unknown",
+                "risk_level": risk_level,
+                "action": "normal",
+                "source": "template",
+                "conversation_title": "New Support Session",
+                "sentiment_score": None,
+                "emotion_score": None,
+                "risk_score": 0.0,
+                "confidence": 1.0,
+                "suggestions": [],
+            }
 
-    # ==========================================
-    # 4. RISK DETECTION
-    # ==========================================
-
-    risk_level = detect_risk(
-        message
-    )
-
-    # ==========================================
-    # 5. AI RESPONSE
-    # ==========================================
-
-    reply = generate_ai_response(
+    # Only complex contextual messages reach the LLM.
+    ai_result = generate_ai_response(
         message=message,
         history=history,
-        intent=intent,
-        sentiment=sentiment,
-        risk_level=risk_level
     )
 
-    # ==========================================
-    # 6. FINAL RESULT
-    # ==========================================
-
-    action = "normal"
-
-    if risk_level == "medium":
-        action = "support"
-
     return {
-        "reply": reply,
+        **ai_result,
         "intent": intent,
         "sentiment": sentiment,
         "risk_level": risk_level,
-        "action": action
+        "action": (
+            "support"
+            if risk_level == "medium"
+            else "normal"
+        ),
+        "source": "llm",
     }

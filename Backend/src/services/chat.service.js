@@ -299,7 +299,7 @@ export async function processChatMessage({
     await getConversationContext(
       userId,
       conversationId,
-      20
+      8
     );
 
 

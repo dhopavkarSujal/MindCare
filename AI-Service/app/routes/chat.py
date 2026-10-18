@@ -5,6 +5,8 @@ from app.models.schemas import (
     ChatResponse,
 )
 
+from app.services.response import process_message
+
 from app.services.ai import (
     generate_ai_response,
 )
@@ -34,10 +36,9 @@ def chat(request: ChatRequest):
         ]
 
         # ==========================================
-        # GENERATE STRUCTURED AI RESPONSE
+         # Route every message through the central AI pipeline.
         # ==========================================
-
-        result = generate_ai_response(
+        result = process_message(
             message=request.message,
             history=history,
         )
@@ -58,6 +59,8 @@ def chat(request: ChatRequest):
             risk_level=result["risk_level"],
 
             action=result["action"],
+
+            source=result.get("source", "llm"),
 
             conversation_title=result[
                 "conversation_title"
