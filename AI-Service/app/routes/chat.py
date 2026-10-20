@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, HTTPException
 
 from app.models.schemas import ChatRequest, ChatResponse
@@ -11,8 +10,8 @@ router = APIRouter()
 @router.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
-        # Convert Pydantic history messages into dictionaries
-        # expected by the AI response pipeline.
+        # Pydantic has already normalized/validated the request. Convert history
+        # to plain dictionaries for the existing response pipeline contract.
         history = [
             {
                 "role": item.role,
@@ -21,31 +20,14 @@ async def chat(request: ChatRequest):
             for item in request.history
         ]
 
-        # Process the current message through the MindCare pipeline.
         result = await process_message(
             message=request.message,
             history=history,
         )
 
-        # Return a validated response using the existing schema.
-        return ChatResponse(
-            reply=result["reply"],
-            intent=result.get("intent", "general"),
-            sentiment=result.get("sentiment", "neutral"),
-            emotion=result.get("emotion", "unknown"),
-            risk_level=result.get("risk_level", "low"),
-            action=result.get("action", "normal"),
-            source=result.get("source", "llm"),
-            conversation_title=result.get(
-                "conversation_title",
-                "New Support Session",
-            ),
-            sentiment_score=result.get("sentiment_score"),
-            emotion_score=result.get("emotion_score"),
-            risk_score=result.get("risk_score"),
-            confidence=result.get("confidence"),
-            suggestions=result.get("suggestions", []),
-        )
+        # Keep the public response shape stable while validating the complete
+        # internal result in one place instead of manually copying each field.
+        return ChatResponse.model_validate(result)
 
     except HTTPException:
         raise
