@@ -1,32 +1,18 @@
+
 from fastapi import APIRouter, HTTPException
 
-from app.models.schemas import (
-    ChatRequest,
-    ChatResponse,
-)
-
+from app.models.schemas import ChatRequest, ChatResponse
 from app.services.response import process_message
-
-from app.services.ai import (
-    generate_ai_response,
-)
 
 
 router = APIRouter()
 
 
-@router.post(
-    "/chat",
-    response_model=ChatResponse
-)
-def chat(request: ChatRequest):
-
+@router.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
     try:
-
-        # ==========================================
-        # CONVERT HISTORY
-        # ==========================================
-
+        # Convert Pydantic history messages into dictionaries
+        # expected by the AI response pipeline.
         history = [
             {
                 "role": item.role,
@@ -35,66 +21,45 @@ def chat(request: ChatRequest):
             for item in request.history
         ]
 
-        # ==========================================
-         # Route every message through the central AI pipeline.
-        # ==========================================
-        result = process_message(
+        # Process the current message through the MindCare pipeline.
+        result = await process_message(
             message=request.message,
             history=history,
         )
 
-        # ==========================================
-        # RETURN STRUCTURED RESPONSE
-        # ==========================================
-
+        # Return a validated response using the existing schema.
         return ChatResponse(
             reply=result["reply"],
-
-            intent=result["intent"],
-
-            sentiment=result["sentiment"],
-
-            emotion=result["emotion"],
-
-            risk_level=result["risk_level"],
-
-            action=result["action"],
-
+            intent=result.get("intent", "general"),
+            sentiment=result.get("sentiment", "neutral"),
+            emotion=result.get("emotion", "unknown"),
+            risk_level=result.get("risk_level", "low"),
+            action=result.get("action", "normal"),
             source=result.get("source", "llm"),
-
-            conversation_title=result[
-                "conversation_title"
-            ],
-
-            sentiment_score=result[
-                "sentiment_score"
-            ],
-
-            emotion_score=result[
-                "emotion_score"
-            ],
-
-            risk_score=result[
-                "risk_score"
-            ],
-
-            confidence=result[
-                "confidence"
-            ],
-
-            suggestions=result[
-                "suggestions"
-            ],
+            conversation_title=result.get(
+                "conversation_title",
+                "New Support Session",
+            ),
+            sentiment_score=result.get("sentiment_score"),
+            emotion_score=result.get("emotion_score"),
+            risk_score=result.get("risk_score"),
+            confidence=result.get("confidence"),
+            suggestions=result.get("suggestions", []),
         )
+
+    except HTTPException:
+        raise
 
     except Exception as exc:
+        import traceback
 
         print(
-            "AI chat error:",
-            exc
+            f"[AI-ERROR] type={type(exc).__name__}, "
+            f"message={str(exc)[:500]}"
         )
+        traceback.print_exc()
 
         raise HTTPException(
             status_code=500,
-            detail=str(exc),
-        ) from exc
+            detail="Unable to process your message right now. Please try again.",
+        ) from None

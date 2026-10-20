@@ -1,5 +1,5 @@
 import prisma from "../db/prisma.js";
-
+import { performance } from "node:perf_hooks";
 import {
   getConversationContext,
 } from "./conversation.service.js";
@@ -325,14 +325,17 @@ export async function processChatMessage({
   // 5. CALL FASTAPI AI SERVICE
   // ==========================================
 
-  const aiResult =
-    await generateChatResponse({
+  const aiStart = performance.now();
+  const aiResult = await generateChatResponse({
+    message: cleanedMessage,
+    conversation: context,
+  });
 
-      message: cleanedMessage,
+  const aiDuration = performance.now() - aiStart;
 
-      conversation: context,
-    });
-
+  console.info(
+    `[CHAT-PERFORMANCE] fastapi_request=${(aiDuration / 1000).toFixed(2)}s`
+  );
 
   // ==========================================
   // 6. VALIDATE AI RESPONSE

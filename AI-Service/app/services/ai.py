@@ -1,4 +1,6 @@
+import time
 import json
+import math
 import os
 
 import httpx
@@ -9,10 +11,7 @@ from app.prompts.system_prompt import SYSTEM_PROMPT
 
 load_dotenv()
 
-
-OPENROUTER_API_KEY = os.getenv(
-    "OPENROUTER_API_KEY"
-)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 OPENROUTER_URL = (
     "https://openrouter.ai/api/v1/chat/completions"
@@ -20,6 +19,8 @@ OPENROUTER_URL = (
 
 MODEL = "openrouter/free"
 
+# Reuse HTTP connections across AI requests.
+HTTP_CLIENT = httpx.AsyncClient(timeout=60.0)
 
 if not OPENROUTER_API_KEY:
     raise RuntimeError(
@@ -36,28 +37,36 @@ GENERIC_TITLES = {
     "new support session",
 }
 
+VALID_SENTIMENTS = {
+    "positive",
+    "neutral",
+    "negative",
+}
+
+VALID_RISK_LEVELS = {
+    "low",
+    "medium",
+    "high",
+}
+
+VALID_ACTIONS = {
+    "normal",
+    "support",
+    "crisis",
+}
+
 
 def parse_ai_json(content: str) -> dict:
-    """
-    Convert the LLM response into a Python dictionary.
+    """Parse a JSON object returned by the AI."""
 
-    Handles:
-    - normal JSON
-    - JSON wrapped in ```json ... ```
-    - accidental surrounding text
-    """
-
-    if not content:
+    if not content or not content.strip():
         raise RuntimeError(
             "OpenRouter returned an empty response."
         )
 
     cleaned = content.strip()
 
-    # ------------------------------------------
-    # Remove Markdown code fences
-    # ------------------------------------------
-
+    # Remove Markdown code fences when present.
     if cleaned.startswith("```"):
         lines = cleaned.splitlines()
 
@@ -69,10 +78,7 @@ def parse_ai_json(content: str) -> dict:
 
         cleaned = "\n".join(lines).strip()
 
-    # ------------------------------------------
-    # Try normal JSON first
-    # ------------------------------------------
-
+    # Try parsing the complete response.
     try:
         parsed = json.loads(cleaned)
 
@@ -82,21 +88,14 @@ def parse_ai_json(content: str) -> dict:
     except json.JSONDecodeError:
         pass
 
-    # ------------------------------------------
-    # Try extracting the JSON object
-    # ------------------------------------------
-
+    # Try extracting a JSON object from surrounding text.
     start = cleaned.find("{")
     end = cleaned.rfind("}")
 
-    if start != -1 and end != -1 and end > start:
-
-        candidate = cleaned[
-            start:end + 1
-        ]
+    if start != -1 and end > start:
+        candidate = cleaned[start:end + 1]
 
         try:
-
             parsed = json.loads(candidate)
 
             if isinstance(parsed, dict):
@@ -105,84 +104,140 @@ def parse_ai_json(content: str) -> dict:
         except json.JSONDecodeError:
             pass
 
+    # Do not include the raw model output in the error.
     raise RuntimeError(
-        f"OpenRouter did not return valid JSON: {content}"
+        "OpenRouter did not return a valid JSON object."
     )
+
+
+def normalize_score(value):
+    """
+    Accept only finite numeric scores from 0.0 to 1.0.
+
+    Invalid or missing scores become None.
+    These scores are not clinically calibrated measurements.
+    """
+
+    if isinstance(value, bool):
+        return None
+
+    if not isinstance(value, (int, float)):
+        return None
+
+    score = float(value)
+
+    if not math.isfinite(score):
+        return None
+
+    if not 0.0 <= score <= 1.0:
+        return None
+
+    return score
 
 
 def normalize_result(result: dict) -> dict:
-    """
-    Ensure the response contains the fields
-    expected by FastAPI and Node.
-    """
+    """Validate and normalize the AI response fields."""
 
-    reply = str(
-        result.get("reply", "")
-    ).strip()
-
-    if not reply:
+    if not isinstance(result, dict):
         raise RuntimeError(
-            "AI response is missing 'reply'."
+            "AI response must be a JSON object."
         )
 
-    intent = str(
-        result.get(
-            "intent",
-            "general_support"
-        )
-    ).strip().lower()
+    # Reply must be a non-empty string.
+    raw_reply = result.get("reply")
 
+    if not isinstance(raw_reply, str) or not raw_reply.strip():
+        raise RuntimeError(
+            "AI response is missing a valid reply."
+        )
+
+    reply = raw_reply.strip()
+
+    # Intent is open-ended because the application
+    # has multiple domain-specific intent labels.
+    raw_intent = result.get("intent", "general")
+
+    if not isinstance(raw_intent, str):
+        raw_intent = "general"
+
+    intent = raw_intent.strip().lower() or "general"
+    intent = intent[:64]
+
+    # Validate sentiment.
     sentiment = str(
-        result.get(
-            "sentiment",
-            "neutral"
-        )
+        result.get("sentiment", "neutral")
     ).strip().lower()
 
-    emotion = str(
-        result.get(
-            "emotion",
-            "unknown"
-        )
-    ).strip().lower()
+    if sentiment not in VALID_SENTIMENTS:
+        sentiment = "neutral"
 
+    # Keep emotion as a descriptive label, not a diagnosis.
+    raw_emotion = result.get("emotion", "unknown")
+
+    if not isinstance(raw_emotion, str):
+        raw_emotion = "unknown"
+
+    emotion = raw_emotion.strip().lower() or "unknown"
+    emotion = emotion[:40]
+
+    # Validate risk level.
     risk_level = str(
-        result.get(
-            "risk_level",
-            "low"
-        )
+        result.get("risk_level", "low")
     ).strip().lower()
 
+    if risk_level not in VALID_RISK_LEVELS:
+        risk_level = "low"
+
+    # Validate action.
     action = str(
-        result.get(
-            "action",
-            "normal"
-        )
+        result.get("action", "normal")
     ).strip().lower()
 
-    conversation_title = str(
-        result.get(
-            "conversation_title",
-            "New Support Session"
-        )
-    ).strip()
+    if action not in VALID_ACTIONS:
+        action = "normal"
 
-    suggestions = result.get(
-        "suggestions",
-        []
+    # A model-generated high-risk label must not
+    # be paired with a normal action.
+    if risk_level == "high":
+        action = "crisis"
+    elif risk_level == "medium" and action == "normal":
+        action = "support"
+
+    # Validate title.
+    raw_title = result.get(
+        "conversation_title",
+        "New Support Session",
     )
 
-    if not isinstance(
-        suggestions,
-        list
-    ):
-        suggestions = []
+    if not isinstance(raw_title, str):
+        raw_title = "New Support Session"
 
-    suggestions = [
-        str(item).strip()
-        for item in suggestions
-        if str(item).strip()
-    ][:4]
+    conversation_title = raw_title.strip()
+
+    if not conversation_title:
+        conversation_title = "New Support Session"
+
+    conversation_title = conversation_title[:80]
+
+    # Validate suggestions.
+    raw_suggestions = result.get("suggestions", [])
+
+    if not isinstance(raw_suggestions, list):
+        raw_suggestions = []
+
+    suggestions = []
+
+    for item in raw_suggestions:
+        if not isinstance(item, str):
+            continue
+
+        suggestion = item.strip()
+
+        if suggestion:
+            suggestions.append(suggestion[:200])
+
+        if len(suggestions) == 4:
+            break
 
     return {
         "reply": reply,
@@ -192,48 +247,31 @@ def normalize_result(result: dict) -> dict:
         "risk_level": risk_level,
         "action": action,
         "conversation_title": conversation_title,
-        "sentiment_score": result.get(
-            "sentiment_score"
+        "sentiment_score": normalize_score(
+            result.get("sentiment_score")
         ),
-        "emotion_score": result.get(
-            "emotion_score"
+        "emotion_score": normalize_score(
+            result.get("emotion_score")
         ),
-        "risk_score": result.get(
-            "risk_score"
+        "risk_score": normalize_score(
+            result.get("risk_score")
         ),
-        "confidence": result.get(
-            "confidence"
+        "confidence": normalize_score(
+            result.get("confidence")
         ),
         "suggestions": suggestions,
     }
 
 
-def generate_ai_response(
+async def generate_ai_response(
     message: str,
-    history: list[dict],
+    history: list[dict] | None = None,
 ) -> dict:
     """
-    Generate a structured MindCare response.
-
-    The LLM receives:
-    - MindCare system instructions
-    - previous conversation history
-    - current user message
-
-    The LLM returns structured JSON containing:
-    - reply
-    - intent
-    - sentiment
-    - emotion
-    - risk
-    - title
-    - suggestions
+    Generate a structured MindCare response using OpenRouter.
     """
 
-    # ==========================================
-    # BUILD MESSAGE LIST
-    # ==========================================
-
+    # Build the system message.
     messages = [
         {
             "role": "system",
@@ -241,25 +279,23 @@ def generate_ai_response(
         }
     ]
 
-    # ==========================================
-    # ADD CONVERSATION HISTORY
-    # ==========================================
-
-    recent_history = history[-20:]
+    # Add recent conversation history.
+    recent_history = (history or [])[-20:]
 
     for item in recent_history:
+        if not isinstance(item, dict):
+            continue
 
         role = item.get("role")
+        content = item.get("content", "")
 
-        content = str(
-            item.get("content", "")
-        ).strip()
-
-        if role not in {
-            "user",
-            "assistant",
-        }:
+        if role not in {"user", "assistant"}:
             continue
+
+        if not isinstance(content, str):
+            continue
+
+        content = content.strip()
 
         if not content:
             continue
@@ -269,160 +305,132 @@ def generate_ai_response(
             "content": content,
         })
 
-    # ==========================================
-    # ADD CURRENT USER MESSAGE
-    # ==========================================
+    # Add the current message exactly once.
+    if not isinstance(message, str) or not message.strip():
+        raise ValueError("Message cannot be empty.")
 
     messages.append({
         "role": "user",
         "content": message.strip(),
     })
 
-    # ==========================================
-    # OPENROUTER REQUEST
-    # ==========================================
-
+    # Prepare the OpenRouter request.
     payload = {
         "model": MODEL,
-
         "messages": messages,
-
         "response_format": {
-            "type": "json_object"
+            "type": "json_object",
         },
-
         "provider": {
-            "require_parameters": True
+            "require_parameters": True,
         },
-
         "reasoning": {
-            "effort": "low"
+            "effort": "low",
         },
-
         "max_tokens": 1200,
-
         "temperature": 0.2,
     }
 
     headers = {
-        "Authorization": (
-            f"Bearer {OPENROUTER_API_KEY}"
-        ),
-
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
     }
 
-    response = None
+    
+    # Send the request without printing raw response content.
+    start_time = time.perf_counter()
 
     try:
-
-        with httpx.Client(
-            timeout=60.0
-        ) as client:
-
-            response = client.post(
-                OPENROUTER_URL,
-                headers=headers,
-                json=payload,
-            )
-
+        response = await HTTP_CLIENT.post(
+            OPENROUTER_URL,
+            headers=headers,
+            json=payload,
+        )
         response.raise_for_status()
 
+        elapsed = time.perf_counter() - start_time
+        print(
+            f"[AI-PERFORMANCE] openrouter_request={elapsed:.2f}s"
+        )
+
     except httpx.HTTPError as exc:
-
+        elapsed = time.perf_counter() - start_time
         print(
-            "\n========== OPENROUTER ERROR RESPONSE =========="
+            f"[AI-PERFORMANCE] openrouter_request_failed={elapsed:.2f}s "
+            f"type={type(exc).__name__}"
         )
+        raise RuntimeError("OpenRouter request failed.") from None
 
-        if response is not None:
-            print(response.text)
-        else:
-            print("No HTTP response received.")
-
-        print(
-            "===============================================\n"
-        )
-
+    # Parse the provider response.
+    try:
+        data = response.json()
+    except ValueError:
         raise RuntimeError(
-            f"OpenRouter request failed: {exc}"
-        ) from exc
+            "OpenRouter returned an invalid response."
+        ) from None
 
-    # ==========================================
-    # READ OPENROUTER RESPONSE
-    # ==========================================
-
-    data = response.json()
+    if not isinstance(data, dict):
+        raise RuntimeError(
+            "OpenRouter returned an unexpected response."
+        )
 
     print(
-        "\n========== OPENROUTER RAW RESPONSE =========="
+        "[AI-MODEL] "
+        f"requested={MODEL} "
+        f"served={data.get('model', 'unknown')}"
     )
-    print(data)
-    print(
-        "============================================\n"
-    )
-
-    # ==========================================
-    # CHECK RESPONSE STRUCTURE
-    # ==========================================
-
     choices = data.get("choices")
 
-    if not choices:
+    if not isinstance(choices, list) or not choices:
         raise RuntimeError(
-            f"OpenRouter response has no choices: {data}"
+            "OpenRouter response has no choices."
         )
 
     first_choice = choices[0]
 
-    if not first_choice:
+    if not isinstance(first_choice, dict):
         raise RuntimeError(
-            f"OpenRouter returned an empty choice: {data}"
+            "OpenRouter returned an invalid choice."
         )
 
-    message_data = first_choice.get(
-        "message"
-    )
+    message_data = first_choice.get("message")
 
-    if not message_data:
+    if not isinstance(message_data, dict):
         raise RuntimeError(
-            f"OpenRouter choice has no message: {data}"
+            "OpenRouter response has no valid message."
         )
 
-    content = message_data.get(
-        "content"
-    )
+    
+    content = message_data.get("content")
 
-    if not content or not str(
-        content
-    ).strip():
+    if not isinstance(content, str) or not content.strip():
+        finish_reason = first_choice.get("finish_reason")
+        refusal_present = bool(message_data.get("refusal"))
+        content_type = type(content).__name__
 
-        raise RuntimeError(
-            f"OpenRouter returned empty "
-            f"message content: {data}"
+        print(
+            "[AI-DEBUG] empty_content "
+            f"finish_reason={finish_reason!r} "
+            f"refusal_present={refusal_present} "
+            f"content_type={content_type}"
         )
 
-    # ==========================================
-    # PARSE STRUCTURED JSON
-    # ==========================================
+        raise RuntimeError(
+            "OpenRouter returned empty message content."
+        )
 
-    parsed = parse_ai_json(
-        content
-    )
+    # Parse and validate the generated JSON.
+    
+    parsed = parse_ai_json(content)
 
-    # ==========================================
-    # NORMALIZE RESULT
-    # ==========================================
+    if not isinstance(parsed.get("reply"), str) or not parsed.get("reply", "").strip():
+        print(
+            "[AI-DEBUG] invalid_reply_field "
+            f"keys={list(parsed.keys())[:20]} "
+            f"reply_type={type(parsed.get('reply')).__name__} "
+            f"finish_reason={first_choice.get('finish_reason')!r}"
+        )
 
-    result = normalize_result(
-        parsed
-    )
+        raise RuntimeError("OpenRouter returned an invalid reply.")
 
-    print(
-        "\n========== NORMALIZED AI RESULT =========="
-    )
-    print(result)
-    print(
-        "==========================================\n"
-    )
-
-    return result
+    return normalize_result(parsed)

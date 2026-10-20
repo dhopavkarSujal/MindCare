@@ -1,6 +1,6 @@
 from fastapi import FastAPI
+from app.services.ai import HTTP_CLIENT
 import uvicorn
-
 from app.routes.chat import router as chat_router
 
 
@@ -31,6 +31,9 @@ async def health():
         "service": "MindCare AI"
     }
 
+@app.on_event("shutdown")
+async def close_http_client():
+    await HTTP_CLIENT.aclose()
 
 if __name__ == "__main__":
     uvicorn.run(

@@ -19,19 +19,12 @@ these thoughts.
 """
 
 
-def process_message(
-    message: str,
-    history: list[dict],
-) -> dict:
+async def process_message(message, history=None):
+    # 1. Check risk before normal processing
+    risk_level = detect_risk(message)
+    high_risk = detect_immediate_risk(message)
 
-    # Safety gate runs before any normal processing.
-    is_high_risk = detect_immediate_risk(message)
-    print(
-        f"[ROUTER] message={message!r} "
-        f"high_risk={is_high_risk}"
-    )
-    
-    if is_high_risk:
+    if high_risk or risk_level == "high":
         return {
             "reply": CRISIS_RESPONSE.strip(),
             "intent": "crisis",
@@ -50,7 +43,6 @@ def process_message(
 
     intent = detect_intent(message)
     sentiment = detect_sentiment(message)
-    risk_level = detect_risk(message)
 
     complexity = detect_complexity(
         message=message,
@@ -81,7 +73,7 @@ def process_message(
             }
 
     # Only complex contextual messages reach the LLM.
-    ai_result = generate_ai_response(
+    ai_result = await generate_ai_response(
         message=message,
         history=history,
     )
