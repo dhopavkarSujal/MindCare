@@ -1,6 +1,7 @@
 import {
   bookAppointment,
   cancelUserAppointment,
+  getAdminAppointments,
   getUserAppointments,
   updateAppointmentStatus,
 } from "../services/appointments.service.js";
@@ -105,5 +106,26 @@ export async function adminUpdateAppointmentStatusController(req, res) {
     });
   } catch (error) {
     return handleError(res, error, "Failed to update appointment status.");
+  }
+}
+
+
+// GET /api/admin/appointments?status=pending|confirmed|cancelled
+export async function adminGetAppointmentsController(req, res) {
+  const status = req.query.status ?? "";
+  if (typeof status !== "string") return badRequest(res, "status must be a single value.");
+  if (status && !["pending", "confirmed", "cancelled"].includes(status)) {
+    return badRequest(res, "status must be pending, confirmed, or cancelled.");
+  }
+
+  try {
+    const appointments = await getAdminAppointments(status);
+    return res.status(200).json({
+      success: true,
+      message: "Administrative appointments fetched successfully.",
+      data: appointments,
+    });
+  } catch (error) {
+    return handleError(res, error, "Failed to fetch administrative appointments.");
   }
 }

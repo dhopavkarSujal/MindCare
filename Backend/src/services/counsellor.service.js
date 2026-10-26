@@ -123,3 +123,15 @@ export async function createAvailabilitySlot(counsellorId, startsAt, endsAt) {
     throw error;
   }
 }
+
+export async function getAdminCounsellors() {
+  return prisma.counsellor.findMany({
+    orderBy: [{ isActive: "desc" }, { name: "asc" }],
+    include: {
+      _count: {
+        select: { availabilitySlots: true, appointments: true },
+      },
+    },
+    take: 100,
+  });
+}

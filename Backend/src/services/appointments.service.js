@@ -25,6 +25,26 @@ function toAppointmentDto(appointment) {
   };
 }
 
+
+export async function getAdminAppointments(status = "") {
+  const where = status ? { status: status.toUpperCase() } : {};
+  const appointments = await prisma.appointment.findMany({
+    where,
+    include: {
+      counsellor: { select: { name: true } },
+      user: { select: { name: true, email: true } },
+    },
+    orderBy: [{ startsAt: "asc" }, { createdAt: "desc" }],
+    take: 100,
+  });
+
+  return appointments.map((appointment) => ({
+    ...toAppointmentDto(appointment),
+    userName: appointment.user.name,
+    userEmail: appointment.user.email,
+  }));
+}
+
 export async function getUserAppointments(userId) {
   const appointments = await prisma.appointment.findMany({
     where: { userId },

@@ -2,6 +2,7 @@ import {
   createAvailabilitySlot,
   createCounsellor,
   getActiveCounsellors,
+  getAdminCounsellors,
   getCounsellorSlots,
 } from "../services/counsellor.service.js";
 
@@ -170,5 +171,20 @@ export async function adminCreateAvailabilitySlotController(req, res) {
     });
   } catch (error) {
     return handleError(res, error, "Failed to create availability slot.");
+  }
+}
+
+
+// GET /api/admin/counsellors — includes inactive listings for operations.
+export async function adminGetCounsellorsController(req, res) {
+  try {
+    const counsellors = await getAdminCounsellors();
+    return res.status(200).json({
+      success: true,
+      message: "Administrative counsellor list fetched successfully.",
+      data: counsellors,
+    });
+  } catch (error) {
+    return handleError(res, error, "Failed to fetch administrative counsellors.");
   }
 }
