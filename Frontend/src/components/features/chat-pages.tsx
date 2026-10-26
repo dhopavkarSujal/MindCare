@@ -120,7 +120,13 @@ export function ChatThreadPage({ conversationId }: { conversationId: string }) {
     finally { setLoading(false); }
   }, [conversationId]);
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { void getConversations().then(setConversations).catch(() => undefined); }, [conversationId, messages.length]);
+  useEffect(() => {
+    let active = true;
+    void getConversations()
+      .then((items) => { if (active) setConversations(items); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [conversationId]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages, sending, safetyMode]);
   useEffect(() => { textareaRef.current?.focus(); }, [conversationId]);
 
@@ -133,10 +139,22 @@ export function ChatThreadPage({ conversationId }: { conversationId: string }) {
     try {
       const response = await sendMessage({ conversationId, message: content });
       const aiMessage = response.aiMessage as Record<string, unknown> | undefined;
-      if (!aiMessage) throw new Error("The server reply didn't include an AI message. Your message may have been saved; please retry or refresh the conversation.");
+      if (!aiMessage) throw new Error("The server reply didn't include an AI message. Please try again.");
       const normalized = normalizeMessages([{ ...aiMessage, role: "assistant", sender: aiMessage.sender ?? "ASSISTANT" }])[0];
       if (!normalized) throw new Error("The server returned an empty AI response. Please try again.");
-      setMessages((current) => [...current, normalized]);
+
+      // Replace the optimistic bubble with the persisted row returned by Express.
+      const savedUserMessage = response.userMessage as Record<string, unknown> | undefined;
+      const normalizedUser = savedUserMessage
+        ? normalizeMessages([{ ...savedUserMessage, role: "user", sender: savedUserMessage.sender ?? "USER" }])[0]
+        : undefined;
+      setMessages((current) => [
+        ...current.filter((item) => item.id !== optimistic.id),
+        normalizedUser ?? optimistic,
+        normalized,
+      ]);
+      // Refresh the sidebar once per completed turn, not on each optimistic/message state change.
+      void getConversations().then(setConversations).catch(() => undefined);
       const analysis = response.analysis as { isCrisis?: boolean } | null | undefined;
       // The Express API reports risk via `action` ("crisis"), `riskLevel` ("high") and analysis.isCrisis.
       setSafetyMode(
@@ -144,8 +162,12 @@ export function ChatThreadPage({ conversationId }: { conversationId: string }) {
           String(response.riskLevel ?? "").toLowerCase() === "high" ||
           Boolean(analysis?.isCrisis),
       );
-    } catch (caught) { setError(errorText(caught)); }
-    finally { setSending(false); textareaRef.current?.focus(); }
+    } catch (caught) {
+      // Remove the optimistic bubble and restore the draft when the request fails.
+      setMessages((current) => current.filter((item) => item.id !== optimistic.id));
+      setInput((current) => current || content);
+      setError(errorText(caught));
+    } finally { setSending(false); textareaRef.current?.focus(); }
   }
 
   async function startNewConversation() {
@@ -183,7 +205,7 @@ export function ChatThreadPage({ conversationId }: { conversationId: string }) {
     </div>
     {error && messages.length > 0 && <div className="mc-chat-inline-error"><Feedback kind="error">{error}</Feedback><button className="mc-button mc-button--secondary" type="button" onClick={() => void load()}>Refresh</button></div>}
     <form className="mc-chat-composer" onSubmit={submit}>
-      <textarea ref={textareaRef} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={onComposerKey} placeholder="Write what's on your mind…" aria-label="Your message" rows={2} maxLength={8000} disabled={loading || sending} />
+      <textarea ref={textareaRef} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={onComposerKey} placeholder="Write what's on your mind…" aria-label="Your message" rows={2} maxLength={4000} disabled={loading || sending} />
       <div className="mc-chat-composer__bottom"><span><ShieldAlert size={12} /> Share only what you feel comfortable sharing. Enter to send · Shift+Enter for a new line.</span><button className="mc-button mc-button--primary" type="submit" disabled={!input.trim() || sending || loading}>{sending ? <LoaderCircle size={15} className="mc-spin-icon" /> : <Send size={15} />}{sending ? "Sending…" : "Send"}</button></div>
     </form>
     <p className="mc-chat-legal">MindCare can help with reflection and general information, but it does not diagnose conditions or replace professional care. <Link href="/resources">Explore support resources</Link>.</p>
