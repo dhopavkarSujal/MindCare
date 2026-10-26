@@ -2,7 +2,7 @@
 
 MindCare is a mental-wellness web application for student wellbeing. The V2 branch uses a Next.js frontend, an Express API, PostgreSQL through Prisma, Supabase Auth, and a separate FastAPI service for AI-assisted conversations.
 
-> **Status: active development / prototype.** Login, AI chat, mood check-ins, and the dashboard are connected to the current backend paths. Several additional screens are present in the frontend but still need their corresponding backend routes and data models. A successful local demo is not the same as production readiness.
+> **Status: active development / prototype.** V2 includes registered APIs for conversations, chat, moods, resources, journal entries, profile preferences, consent settings, counsellors, and appointments. Automated checks cover backend authentication smoke tests, AI pipeline regression tests, and frontend quality. Database-backed integration, live model-provider behavior, and production readiness still require separate verification.
 
 ## Contents
 
