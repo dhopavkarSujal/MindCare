@@ -3,15 +3,15 @@
  * Uses the botanical landing-page palette and existing Inter / Instrument Serif variables.
  */
 .mc-auth {
-  --auth-ivory: #f6f5f0;
-  --auth-paper: #fbfaf7;
-  --auth-sage: #e4ebe2;
-  --auth-green: #315f50;
-  --auth-green-hover: #274a3e;
-  --auth-forest: #243c35;
-  --auth-muted: #65736a;
-  --auth-border: #d9ded5;
-  --auth-sand: #d9b99b;
+  --auth-ivory: #f6f8fa;
+  --auth-paper: #ffffff;
+  --auth-sage: #e5f0f0;
+  --auth-green: #245b63;
+  --auth-green-hover: #1d4a51;
+  --auth-forest: #17383d;
+  --auth-muted: #5f7076;
+  --auth-border: #d9e2e5;
+  --auth-sand: #d5a989;
   display: grid;
   grid-template-columns: minmax(390px, 0.91fr) minmax(490px, 1.09fr);
   min-height: 100vh;
@@ -36,7 +36,7 @@
 }
 
 .mc-auth :where(a, button, input):focus-visible {
-  outline: 3px solid #a77754;
+  outline: 3px solid #70aeb4;
   outline-offset: 3px;
 }
 
@@ -567,13 +567,16 @@
 .mc-auth__content-wrap {
   display: flex;
   flex: 1;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  min-width: 0;
   padding-block: 42px;
 }
 
 .mc-auth__content-enter {
   width: min(100%, 438px);
+  min-width: 0;
   margin-inline: auto;
   animation: mc-auth-rise 620ms 60ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
@@ -610,8 +613,8 @@
   max-width: 365px;
   margin: 0;
   color: #737f75;
-  font-size: 12px;
-  line-height: 1.8;
+  font-size: 15px;
+  line-height: 1.7;
 }
 
 .mc-auth-fields {
@@ -630,7 +633,7 @@
 .mc-auth-field > label,
 .mc-auth-field__label-row label {
   color: #374a40;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -682,7 +685,7 @@
   color: var(--auth-forest);
   background: transparent;
   font: inherit;
-  font-size: 12px;
+  font-size: 15px;
 }
 
 .mc-auth-input-wrap input::placeholder {
@@ -726,7 +729,7 @@
   background: var(--auth-green);
   box-shadow: 0 7px 18px rgb(49 95 80 / 14%);
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
@@ -779,7 +782,7 @@
   color: #3e4f44;
   background: rgb(251 250 247 / 75%);
   font: inherit;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
@@ -812,8 +815,8 @@
   gap: 7px;
   margin: 19px 0 0;
   color: #89938a;
-  font-size: 9px;
-  line-height: 1.7;
+  font-size: 12px;
+  line-height: 1.6;
   text-align: center;
 }
 
@@ -1003,11 +1006,11 @@
   .mc-auth-form__intro { margin-bottom: 24px; }
   .mc-auth-form__intro h2,
   .mc-auth-form--success h2 { font-size: clamp(42px, 12vw, 51px); }
-  .mc-auth-form__intro p { font-size: 11px; }
+  .mc-auth-form__intro p { font-size: 15px; }
   .mc-auth-fields { gap: 16px; }
   .mc-auth-fields--register { gap: 13px; }
   .mc-auth-input-wrap { min-height: 49px; padding-inline: 12px; }
-  .mc-auth-input-wrap input { min-height: 47px; font-size: 12px; }
+  .mc-auth-input-wrap input { min-height: 47px; font-size: 15px; }
   .mc-auth__submit { min-height: 50px; }
   .mc-auth__bottom-note { font-size: 8px; }
 }
@@ -1019,7 +1022,7 @@
   .mc-auth__mobile-brand .mc-brand { transform: scale(0.83); }
   .mc-auth-form__intro h2,
   .mc-auth-form--success h2 { font-size: 39px; }
-  .mc-auth__form-note { font-size: 8px; }
+  .mc-auth__form-note { font-size: 12px; }
 }
 
 @keyframes mc-auth-rise {
@@ -1047,3 +1050,13 @@
   }
 }
 .mc-auth__forgot-link{color:#54765b;font-size:11px;font-weight:650;text-decoration:none}.mc-auth__forgot-link:hover{text-decoration:underline;text-underline-offset:3px}
+
+/* Keep authentication readable and aligned with the shared teal system. */
+.mc-auth__main{background:var(--auth-ivory)}
+.mc-auth__form-card{border-color:var(--auth-border);background:var(--auth-paper);box-shadow:0 12px 36px rgb(23 56 61 / 7%)}
+.mc-auth-form__intro p,.mc-auth__form-note,.mc-auth__bottom-note{color:var(--auth-muted)}
+.mc-auth__forgot-link{color:var(--auth-green);font-size:13px}
+.mc-auth__submit{background:var(--auth-green);border-color:var(--auth-green)}
+.mc-auth__submit:hover:not(:disabled){background:var(--auth-green-hover);border-color:var(--auth-green-hover)}
+.mc-auth__success-mark{border-color:#c9dfe0;background:var(--auth-sage)}
+@media(max-width:540px){.mc-auth-form__intro p{font-size:15px}.mc-auth__form-note{font-size:12px}.mc-auth__forgot-link{font-size:13px}}

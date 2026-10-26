@@ -5,7 +5,6 @@ import {
   Check,
   HeartHandshake,
   Leaf,
-  LockKeyhole,
   Sparkles,
 } from "lucide-react";
 import { Brand } from "@/components/marketing/brand";
@@ -90,10 +89,6 @@ export function AuthShell({ mode, children }: AuthShellProps) {
 
         <div className="mc-auth__content-wrap">
           <div className="mc-auth__content-enter">{children}</div>
-          <div className="mc-auth__assurance">
-            <LockKeyhole size={13} aria-hidden="true" />
-            <span>Your account is protected by Supabase authentication.</span>
-          </div>
         </div>
 
         <footer className="mc-auth__bottom-note">
