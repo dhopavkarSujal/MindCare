@@ -1,312 +1,287 @@
-# MindCare Digital Mental Health & Psychological Support System
-<p align="center">
-  <strong>A digital mental-health support platform designed to make student wellbeing support more accessible, private, and easier to reach.</strong>
-</p>
+# MindCare V2
 
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#system-architecture">Architecture</a> •
-  <a href="#technology-stack">Tech Stack</a> •
-  <a href="#installation--setup">Setup</a> •
-  <a href="#api-overview">API</a> •
-  <a href="#future-enhancements">Roadmap</a>
-</p>
+MindCare is a mental-wellness web application for student wellbeing. The V2 branch uses a Next.js frontend, an Express API, PostgreSQL through Prisma, Supabase Auth, and a separate FastAPI service for AI-assisted conversations.
 
-<p align="center">
-  <!-- Replace these badges with your actual repository information -->
-  <img src="https://img.shields.io/badge/Status-In%20Development-orange" alt="Project Status">
-  <img src="https://img.shields.io/badge/Frontend-React.js-blue" alt="Frontend">
-  <img src="https://img.shields.io/badge/Backend-Node.js-green" alt="Backend">
-  <img src="https://img.shields.io/badge/Database-PostgreSQL-316192" alt="Database">
-  <img src="https://img.shields.io/badge/API-REST-6DB33F" alt="REST API">
-</p>
+> **Status: active development / prototype.** Login, AI chat, mood check-ins, and the dashboard are connected to the current backend paths. Several additional screens are present in the frontend but still need their corresponding backend routes and data models. A successful local demo is not the same as production readiness.
 
----
-## Table of Contents
+## Contents
 
-- [Overview](#overview)
-- [Problem Statement](#problem-statement)
-- [Objectives](#objectives)
-- [Features](#features)
-- [User Roles](#user-roles)
-- [System Workflow](#system-workflow)
-- [System Architecture](#system-architecture)
-- [Technology Stack](#technology-stack)
-- [Database Design](#database-design)
-- [API Overview](#api-overview)
-- [Project Structure](#project-structure)
-- [Installation & Setup](#installation--setup)
-- [Environment Variables](#environment-variables)
-- [Testing](#testing)
-- [Security & Privacy](#security--privacy)
-- [Limitations](#limitations)
-- [Future Enhancements](#future-enhancements)
-- [Team](#team)
-- [License](#license)
+- [Architecture](#architecture)
+- [Technology stack](#technology-stack)
+- [Current feature status](#current-feature-status)
+- [Repository structure](#repository-structure)
+- [Run locally](#run-locally)
+- [Environment variables](#environment-variables)
+- [API overview](#api-overview)
+- [Security and privacy](#security-and-privacy)
+- [Development priorities](#development-priorities)
+- [Validation checklist](#validation-checklist)
 
----
-## Overview
+## Architecture
 
-**Digital Mental Health & Psychological Support System** is a web-based platform designed to help college students access mental-health support in a convenient and confidential environment.
+```mermaid
+flowchart TD
+  U[User browser] --> F[Next.js 16 / React 19]
+  F -->|HTTPS + Supabase access token| E[Express 5 API]
+  E -->|Prisma queries| DB[(PostgreSQL)]
+  E -->|Internal HTTP request| AI[FastAPI AI service]
+  AI -->|Configured model request| LLM[OpenRouter]
+  S[Supabase Auth] -->|Identity and session verification| F
+  S -->|Token verification| E
+```
 
-The platform combines an **AI-powered conversational companion**, **mood tracking**, **private journaling**, **self-help resources**, and **professional counselling access** in a single application.
+### Responsibility boundaries
 
-The system follows a **hybrid AI + human support model**:
+- **Next.js / React:** pages, layouts, user interactions, loading/error states, and browser-side API calls.
+- **Express:** API contracts, request validation, authentication middleware, application rules, and data/service orchestration.
+- **Prisma / PostgreSQL:** durable records for users, conversations, messages, mood logs, AI analysis, and the resource model.
+- **Supabase Auth:** identity, email/password or configured OAuth login, and session/token management.
+- **FastAPI:** validates chat payloads and runs the AI response pipeline.
+- **OpenRouter:** configured model-provider endpoint. Model access never belongs in browser code.
 
-> **AI provides accessible first-line support and information, while professional counsellors provide human assistance when additional support is required.**
+The backend must enforce authorization even when a Next.js page is protected. The AI service is not a replacement for Express authorization. Ordinary mood and dashboard database operations should not call the LLM.
 
-# Problem Statement
+## Technology stack
 
-College students increasingly experience challenges such as:
-
-- Academic and examination stress
-- Anxiety and emotional distress
-- Burnout
-- Loneliness and social isolation
-- Difficulty accessing counselling services
-- Fear of stigma or lack of privacy
-
-Traditional support systems may not always be available at the exact moment a student needs help.
-
-The proposed system provides a **digital first-line support platform** that allows students to access self-help resources, track their wellbeing, communicate with an AI companion, and connect with professional counsellors when necessary.
-
----
-
-# Objectives
-
-The primary objectives of the project are:
-
-| Objective | Description |
+| Layer | Technology |
 |---|---|
-| **Immediate Support** | Provide an AI conversational interface for general emotional support and wellbeing guidance |
-| **Accessibility** | Make support resources available anytime through a web platform |
-| **Self-Awareness** | Allow students to track moods and maintain private journals |
-| **Professional Support** | Provide access to counsellors and appointment booking |
-| **Safety** | Identify potential risk signals and provide appropriate safety guidance |
-| **Privacy** | Minimize unnecessary collection and exposure of personal information |
+| Frontend | Next.js App Router, React, TypeScript, Tailwind CSS v4 |
+| Frontend auth | Supabase JS and `@supabase/ssr` |
+| Backend | Node.js, Express 5 |
+| Database access | Prisma 6 |
+| Database | PostgreSQL |
+| AI API | Python, FastAPI, Pydantic, HTTPX |
+| Model provider | OpenRouter |
+| Development runner | npm scripts and `concurrently` |
 
----
+## Current feature status
 
-## Scope of the Project
+This table reflects the source paths and API routes in this branch; it is not a production acceptance test.
 
-- **Included (MVP):** Student registration and login; an AI chat interface for mental-health support; a curated self-help resource library; mood tracking and journaling features; confidential counsellor booking; and an admin dashboard with anonymized usage statistics.  
-- **Excluded / Not Implemented Yet:** Audio or voice interaction; social peer-to-peer forums; advanced gamification or reward systems; multi-language support beyond initial implementation; integration with external medical systems. These may be added as future enhancements.
+| Feature | Current implementation status |
+|---|---|
+| Login, registration, recovery | Supabase Auth pages and callback are present; Express exposes `GET /api/auth/me` |
+| AI chat | Conversation CRUD and `POST /api/chat` are implemented; Express calls FastAPI |
+| Conversation history | Stored with Prisma; ownership is checked for conversation operations |
+| Mood check-ins | Create, list, retrieve, update, and delete routes are implemented |
+| Dashboard | Frontend summary derives information from mood and conversation endpoints |
+| Public resources | Public page uses a small curated list of external health-organization links |
+| Authenticated resource library | UI calls `/api/resources`, but the current Express app does not register that API |
+| Private journal | UI and API helper functions exist; journal routes and a journal Prisma model are not implemented |
+| Profile and consent settings | UI/API helper functions exist; profile update and consent routes are not implemented |
+| Counselling and bookings | UI/API helper functions exist; counsellor/appointment routes and Prisma models are not implemented |
+| Onboarding | Protected-prefix preparation exists, but onboarding state and workflow are not implemented |
 
-## Functional Requirements
+Do not treat a feature as complete just because a page is visible. A complete feature needs a real API contract, backend validation, ownership checks, persistence, loading/empty/error states, and tests.
 
-1. **User Authentication:** Students, counsellors, and admins must register and log in securely.  
-2. **Chatbot Interaction:** The system shall allow students to send messages to the AI and receive context-aware responses.  
-3. **Knowledge Base:** The system shall retrieve relevant coping strategies and information from a curated mental-health database.  
-4. **Risk Detection:** The system shall analyze each message for risk level (low, moderate, high) and handle urgent cases differently.  
-5. **Mood Tracking:** Students shall be able to record their mood (e.g., on a simple scale) and view their mood history graphically.  
-6. **Journaling:** Students shall be able to write and save private journal entries.  
-7. **Resource Library:** Students shall have access to categorized mental-health resources (articles, guides, exercises).  
-8. **Counselling Booking:** Students shall browse available counsellors and book appointments.  
-9. **Notifications:** The system shall notify students of upcoming appointments or relevant tips (optional feature).  
-10. **Admin Analytics:** Admins shall view dashboards showing aggregate data: user count, common issues, mood trends, appointment stats, etc. All analytics must be anonymized.  
+## Repository structure
 
-## Non-Functional Requirements
-
-- **Security & Privacy:** All personal data and conversations must be encrypted and stored securely. The platform shall comply with privacy best practices (e.g., data minimization, confidentiality).  
-- **Performance:** The chatbot should respond within a few seconds. The system should support multiple concurrent users (target at least 100 simultaneous users).  
-- **Usability:** The UI shall be user-friendly, intuitive, and accessible (e.g., responsive design, clear fonts).  
-- **Scalability:** The backend should be able to scale (via stateless APIs and a robust database) as the user base grows.  
-- **Reliability:** The system shall have high uptime (target 99%) and handle API failures gracefully (e.g., if the AI API is down, show an error message).  
-- **Legal/Ethical:** The system must not give medical advice or diagnoses. It shall include disclaimers and emergency contacts for crisis situations.
-
-## User Roles
-
-- **Student:** Can log in, chat with the AI, track mood, write journal entries, view resources, and book counselling. Each student has a private account.  
-- **Counsellor:** A mental health professional who can set availability, view and manage appointments, and optionally view anonymized session notes or stats (not personal details).  
-- **Admin:** The platform administrator who can manage users/counsellors, add/edit resources, and view system-wide analytics. Admins do NOT see private student conversations, only aggregated trends.
-
-## System Features / Modules
-
-- **Authentication Module:** Handles user signup, login, password management, and role-based access control.  
-- **Chatbot Module:** Interfaces with the AI (LLM + RAG) to process student messages and generate replies. It includes intent and risk analysis subcomponents.  
-- **Knowledge Base Module:** A database of categorized mental-health topics and coping strategies. Used by the chatbot to retrieve information.  
-- **Mood & Journal Module:** Allows students to record mood entries and write diary entries, and view past records.  
-- **Resource Library Module:** Displays categorized content (stress, anxiety, exam tips, meditation videos, etc.).  
-- **Counselling Module:** Shows counsellor profiles and availability. Allows booking and scheduling of appointments.  
-- **Admin Analytics Module:** Generates dashboards with charts (e.g., common issues, mood trends, user stats).
-
-## System Workflow
-
-1. **Student Registration & Login:** New users register with email and create a profile. Existing users log in securely.  
-2. **AI Conversation:** On the student dashboard, the student opens the chat. They type a message (e.g., "I'm feeling very anxious about exams").  
-3. **Message Processing:** The backend receives the message, checks for keywords or patterns, and determines the **risk level** (e.g., normal stress vs. high distress).  
-4. **Knowledge Retrieval:** The system retrieves relevant topics (e.g., "exam stress", "breathing exercises") from the knowledge base.  
-5. **AI Response:** The LLM generates a response using the retrieved information. For example, it might say, "I understand exams can be stressful. Have you tried taking deep breaths or making a study plan?"  
-6. **Risk Handling:** If the risk is moderate/high, the chatbot gently suggests professional help and offers the option to book a counsellor. For urgent cases (e.g., suicidal thoughts), it provides crisis resources immediately.  
-7. **Mood/Journal Logging:** The student can periodically log mood via a simple form and write journal entries. These entries are saved privately.  
-8. **Booking Counselling:** If the student chooses, they view a list of available counsellors (date/time slots) and book an appointment. The counsellor and student receive confirmation.  
-9. **Admin/Analytics:** The admin user can see, for example, a chart of how many students reported "exam stress" or a trend of average stress levels over weeks (all data is anonymous).  
-10. **Feedback Loop:** Over time, the student’s mood trends and conversation history help the AI personalize responses and identify patterns (with privacy in mind).
-
-## Technology Stack
-
-- **Frontend:** React.js with Tailwind CSS for a responsive user interface.  
-- **Backend:** Node.js with Express.js for REST APIs.  
-- **Database:** PostgreSQL (with Prisma ORM) to store user data, conversations, mood entries, etc.  
-- **AI & NLP:** An LLM API (e.g., OpenAI GPT or similar) for conversation generation; a vector database or retrieval service for the knowledge base (RAG approach).  
-- **Authentication:** JWT (JSON Web Tokens) or an authentication service (e.g., Auth0) for secure login.  
-- **Charts:** Recharts (React library) for displaying analytics graphs on the admin dashboard.  
-- **Deployment:** Frontend hosted on Vercel or Netlify; backend on a cloud service (e.g., Heroku, Render, or AWS); database on a cloud provider (e.g., Heroku Postgres or AWS RDS).
-
-## System Architecture
-
-The system follows a **client-server architecture** with a separate AI service layer:
-
-- The **React frontend** communicates with the **Node.js backend** via RESTful APIs.  
-- The backend handles **authentication**, serves **static content**, processes chat messages, and queries the database.  
-- The **AI Service** (a separate module or microservice) handles message analysis: it runs risk detection algorithms, retrieves relevant knowledge, calls the LLM API to get a response, and returns it to the backend.  
-- **Data Flow Diagram:** 
-  ```
-  [Student] -> [React UI] -> [Backend API] -> [AI Service]
-      ↖                                        ↙
-       \              Database              /
-        -------------------------------------
-  ```
-- The **Admin Dashboard** and **Counsellor Portal** are part of the React app, with backend endpoints providing aggregated data.
-
-## Database Requirements
-
-The database will include tables such as:
-
-- **Users:** Stores user credentials and roles (student, counsellor, admin).  
-- **Profiles:** (optional) stores additional user information (full name, contact).  
-- **Conversations:** Each chat session or topic with a student.  
-- **Messages:** Individual chat messages linked to a conversation (with fields: sender, content, timestamp).  
-- **Risk Assessments:** Records of risk level per message.  
-- **Mood_Entries:** Records of date, mood rating, stress level, and optional notes.  
-- **Journal_Entries:** Records of personal journal posts by students.  
-- **Counsellors:** Records of counsellor profiles (linked to a user) with specializations and availability.  
-- **Appointments:** Booking details linking a student and a counsellor with date/time and status.  
-- **Resources:** Predefined articles/videos with category labels.
-
-Each table has appropriate primary keys (UUIDs) and foreign keys (e.g., `messages.conversation_id` → `conversations.id`, `appointments.student_id` → `users.id`). Timestamps (`created_at`, `updated_at`) track record history.
-
-## API Requirements
-
-The backend will expose REST API endpoints, for example:
-
-- `POST /api/auth/register` – Register a new user (student or counsellor).  
-- `POST /api/auth/login` – Authenticate and obtain a JWT.  
-- `GET /api/users/me` – Get current user profile.  
-- `POST /api/chat` – Send a message to the chatbot; returns AI response.  
-- `GET /api/conversations` – List a student's past conversations.  
-- `GET /api/conversations/:id/messages` – Retrieve messages in a conversation.  
-- `POST /api/mood` – Submit a mood entry.  
-- `GET /api/mood/history` – Get mood entries for the user.  
-- `POST /api/journal` – Create a new journal entry.  
-- `GET /api/journal/:id` – Get or update a journal entry.  
-- `GET /api/resources` – List resource items by category.  
-- `GET /api/counsellors` – List available counsellors.  
-- `POST /api/appointments` – Book an appointment with a counsellor.  
-- `GET /api/appointments` – List user's appointments.  
-- `GET /api/admin/stats` – (Admin only) Get site-wide stats (user count, common topics, etc.).  
-
-All endpoints require authentication; some are role-restricted (e.g., only admins can access certain endpoints).
-
-## Hardware / Software Requirements
-
-- **Development Machine:** Any modern PC or laptop (Windows, Mac, or Linux) with at least 8 GB RAM.  
-- **Software:** Node.js (v16+), npm or yarn, and a modern web browser (Chrome, Firefox, etc.).  
-- **Database:** PostgreSQL (v12+) installed locally or access to a hosted Postgres database.  
-- **AI API:** Access to an LLM service (e.g., OpenAI API) with internet connection.  
-- **Additional:** Git for version control, and optionally Docker if containerizing the app.  
-
-No special hardware (GPU, etc.) is required, as the LLM processing is done via cloud API.
-
-## Installation & Setup
-
-1. **Clone the Repository:**  
-   ```bash
-   git clone https://github.com/your-org/mental-health-support.git
-   cd mental-health-support
-   ```
-2. **Backend Setup:**  
-   - Navigate to `server/` folder.  
-   - Install dependencies: `npm install` (or `yarn`).  
-   - Create a `.env` file with configuration (e.g., `DATABASE_URL`, `JWT_SECRET`, `AI_API_KEY`).  
-   - Run database migrations or `prisma migrate dev` to set up tables.  
-   - Start the server: `npm start` or `npm run dev`.  
-3. **Frontend Setup:**  
-   - In a new terminal, navigate to `client/`.  
-   - Install dependencies: `npm install`.  
-   - Create a `.env` file if needed (e.g., to set `REACT_APP_API_URL`).  
-   - Start the development server: `npm start`.  
-4. **Initialize Data (if any):**  
-   - The app may include seed scripts to populate initial resources or an admin user. Run `npm run seed` if provided.  
-5. **Access the App:**  
-   - Open `http://localhost:3000` in your browser for the frontend.  
-   - The backend runs on `http://localhost:5000` (or as configured).
-
-## Project Structure
-
-```
-mental-health-support/
-├── client/             # React frontend
+```text
+MindCare/
+├── AI-Service/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── models/schemas.py
+│   │   ├── prompts/system_prompt.py
+│   │   ├── routes/chat.py
+│   │   └── services/
+│   └── requirements.txt
+├── Backend/
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   └── migrations/
 │   ├── src/
-│   │   ├── components/ # UI components (Chat, MoodForm, etc.)
-│   │   ├── pages/      # Page components (Dashboard, Login, Resources, etc.)
-│   │   └── ... 
+│   │   ├── app.js
+│   │   ├── server.js
+│   │   ├── controllers/
+│   │   ├── db/
+│   │   ├── middleware/
+│   │   ├── routes/
+│   │   └── services/
 │   └── package.json
-├── server/             # Node.js backend
-│   ├── src/
-│   │   ├── controllers/ # API route handlers
-│   │   ├── routes/      # Express route definitions
-│   │   ├── models/      # Database models (Prisma schema)
-│   │   ├── services/    # Business logic (AI service, risk analysis)
-│   │   └── ...
-│   ├── prisma/         # Prisma schema and migrations
+├── Frontend/
+│   ├── src/app/          # route files and layouts
+│   ├── src/components/   # app shell, auth, marketing and feature UI
+│   ├── src/lib/          # API client, Supabase, config and shared types
 │   └── package.json
-├── docs/               # Documentation (design docs, ER diagrams, etc.)
-├── .env.example        # Example environment variables
-└── README.md           # This README file
+├── package.json          # starts the three development services
+└── README.md
 ```
 
-- **`client/`** contains the React application with components for chat, user profile, mood tracking, etc.  
-- **`server/`** contains the Express app with endpoints for auth, chat, and data.  
-- **`prisma/schema.prisma`** defines the database schema used by PostgreSQL.  
-- **`docs/`** holds any additional documentation or diagrams.  
+The current frontend also contains a `src/features/` directory whose feature subfolders are documentation placeholders. Avoid keeping competing implementations of a feature in both `src/features` and `src/components/features`: consolidate that structure only as part of small, tested refactors.
 
-## Testing
+## Run locally
 
-- **Unit Testing:** The backend can use a framework like Jest or Mocha/Chai to test controllers and services. The frontend can use Jest and React Testing Library for component tests.  
-- **Integration Testing:** Test API endpoints using Postman or automated scripts. For example, verify that `/api/chat` returns appropriate responses and that `/api/appointments` correctly stores bookings.  
-- **End-to-End Testing:** Tools like Cypress can simulate a student logging in, chatting, and booking a session.  
-- **Manual Testing:** Users should test key flows: registering, chatting, logging mood, viewing resources, and booking counselling. Pay special attention to error handling (e.g., invalid login, AI service failures).  
-- **Data Safety Testing:** Ensure that personal data is not exposed in logs. Verify that the admin dashboard only shows aggregated data.  
+### Prerequisites
 
-*(Testing code and scripts should be added as the project evolves.)*
+- Node.js 22 LTS recommended.
+- Python 3.11 or a compatible Python version for the installed FastAPI dependencies.
+- npm.
+- A reachable PostgreSQL database and a Supabase project.
+- An OpenRouter API key for model-backed chat responses.
 
-## Limitations
+### 1. Install dependencies
 
-- The **AI companion is not a licensed therapist**. It provides general support and resources but cannot replace professional diagnosis or treatment.  
-- The chatbot's responses depend on the quality of its knowledge base and may occasionally be generic. Further tuning may be needed.  
-- The system **does not handle medical emergencies** automatically. In high-risk cases, it only provides static crisis hotline information (no automatic call-out).  
-- Multi-language support is not implemented in the MVP. Right now, the chatbot works in English only.  
-- The platform assumes trust in the counsellors and administrators; no advanced identity verification is in place.  
+From the repository root:
 
-## Future Enhancements
+```bash
+npm install
+cd Backend
+npm install
+cd ../Frontend
+npm install
+cd ..
+```
 
-- **Multilingual Support:** Add more languages (e.g., Hindi, Marathi) so students can chat in their preferred language.  
-- **Peer Support Communities:** Create anonymized forums or group chats where students can share experiences (moderated for safety).  
-- **Gamification:** Introduce rewards or badges for consistent mood tracking or completing wellness activities.  
-- **Voice/Speech Interface:** Allow voice conversation with the chatbot for accessibility (using speech-to-text).  
-- **Mobile App:** Develop React Native mobile apps for Android/iOS with push notifications.  
-- **Advanced Analytics:** Use machine learning to detect trends or risk factors across the user base (while preserving anonymity).  
-- **Integration:** Connect with university systems for calendar syncing or identity management (if applicable).  
+Create and activate a Python virtual environment, then install the AI dependencies:
 
-## Team / Contributors
+**Windows PowerShell**
+```powershell
+cd AI-Service
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+cd ..
+```
 
-This project was developed by a multidisciplinary team of students and faculty specializing in software engineering and psychology:
+**macOS / Linux**
+```bash
+cd AI-Service
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+cd ..
+```
 
-- **Project Lead:** Dr. Sandeep Kulkarni (Advisor / Project Sponsor)  
-- **Team Members:** Atharv Tandale (Frontend Lead), Tanmay Yadav (Backend Lead), Manish Choudhary (AI Specialist), Harshit Hiremath (Database & Infrastructure).  
-- *(These are example names; replace with the actual development team members.)*
+### 2. Configure environment files
 
-## License
+Create the files described in [Environment variables](#environment-variables). Never copy production secrets into Git.
 
-This project is released under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+### 3. Generate the Prisma client and apply migrations
+
+```bash
+cd Backend
+npm run prisma:generate
+npm run prisma:migrate
+cd ..
+```
+
+Run migrations only against the intended development database. Review pending migrations and back up important data before applying schema changes to a shared or production database.
+
+### 4. Start all development services
+
+After the dependencies and environment files are configured, run from the repository root:
+
+```bash
+npm run dev
+```
+
+The root script starts:
+- Frontend: `http://localhost:3000`
+- Express API: `http://localhost:5000`
+- FastAPI service: `http://127.0.0.1:8000`
+
+Useful health checks:
+- Express: `GET http://localhost:5000/health`
+- FastAPI: `GET http://127.0.0.1:8000/health`
+
+The AI service exposes `POST /api/v1/chat`; it is intended to be called by Express, not directly by the browser.
+
+## Environment variables
+
+### Frontend — `Frontend/.env.local`
+
+Start from `Frontend/.env.example`.
+
+```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+The API URL includes the `/api` prefix. Do not add the prefix twice. Configure the Supabase local callback URL, for example `http://localhost:3000/auth/callback`, in the Supabase Auth URL settings.
+
+### Express — `Backend/.env`
+
+Create this file from `Backend/.env.example`.
+
+```dotenv
+PORT=5000
+FRONTEND_URL=http://localhost:3000
+DIRECT_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
+AI_SERVICE_URL=http://127.0.0.1:8000
+```
+
+Use the connection string required for the configured PostgreSQL/Supabase environment. The current Prisma schema reads the connection from `DIRECT_URL`.
+
+### AI service — `AI-Service/.env`
+
+Start from `AI-Service/.env.example`.
+
+```dotenv
+OPENROUTER_API_KEY=YOUR_OPENROUTER_API_KEY
+```
+
+The AI service currently selects its model in code. Keep the provider key on the server only. Never expose it through a `NEXT_PUBLIC_*` variable or send it to the browser.
+
+## API overview
+
+The following routes are registered by the current Express application.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/health` | Backend process health |
+| GET | `/api/auth/me` | Verify the token and return the application user |
+| GET, POST | `/api/conversations` | List or create the authenticated user's conversations |
+| GET | `/api/conversations/:conversationId` | Get one owned conversation and its messages |
+| PATCH | `/api/conversations/:conversationId` | Rename a conversation |
+| PATCH | `/api/conversations/:conversationId/pin` | Pin or unpin a conversation |
+| DELETE | `/api/conversations/:conversationId` | Delete a conversation |
+| POST | `/api/chat` | Process a message for an owned conversation |
+| GET, POST | `/api/moods` | List or create mood entries |
+| GET, PATCH, DELETE | `/api/moods/:moodId` | Read, update, or delete an owned mood entry |
+
+Successful Express responses use a `success` field and commonly wrap response data in `data`. Chat sends `{ conversationId, message }` and returns persisted user/assistant messages with analysis metadata.
+
+These frontend helpers currently target routes that do not yet exist in Express: `/journal`, `/resources`, `/profile`, `/consents`, `/counsellors`, and `/appointments`. Implement and test each route before advertising those screens as functional.
+
+## Security and privacy
+
+- Express verifies the Supabase bearer token on protected endpoints and derives the application user from the verified identity.
+- Never use a user ID submitted by the browser as proof of ownership.
+- Every read, update, and delete query must scope the record to the authenticated user.
+- Do not commit `.env`, `.env.local`, service keys, database passwords, or model-provider secrets.
+- Avoid logging mental-wellness messages, journal text, access tokens, or other sensitive contents.
+- Keep private journal content out of AI prompts unless a future, explicit consent workflow permits it.
+- Treat model-generated risk labels as imperfect signals, not clinical diagnoses or guaranteed risk probabilities.
+- MindCare is not a substitute for professional or emergency care.
+
+CORS is a browser-origin policy, not authentication. The API must still verify tokens and enforce record ownership.
+
+## Development priorities
+
+1. **Stabilize the working flows:** automated regression coverage for auth, conversation ownership, chat persistence/failure handling, mood validation, and dashboard loading.
+2. **Finish server contracts:** implement journal, resources, profile/consent, and counselling routes and data models—or hide those navigation items until ready.
+3. **Consolidate the frontend structure:** keep route files thin, remove placeholder/duplicate organization, and centralize API/error handling without adding unnecessary abstractions.
+4. **Improve resilience and observability:** health checks, sanitized logs, timeouts, request limits, error contracts, and structured latency metrics.
+5. **Optimize with measurements:** profile repeated requests, database queries, rendering, and bundle size before attempting broad performance changes.
+6. **Improve the AI pipeline in a separate phase:** test rule-based risk assessment, model output validation, retrieval grounding, latency, and safe fallback behavior.
+
+## Validation checklist
+
+Before considering a change complete:
+
+- [ ] Frontend type-check, lint, and production build pass.
+- [ ] Backend starts, connects to the intended database, and exposes health status.
+- [ ] AI service starts and validates its request/response schema.
+- [ ] Login, logout, protected redirects, and expired-token handling work.
+- [ ] A user cannot read or modify another user's conversations or mood entries.
+- [ ] Chat survives provider timeout and persistence failures without misleading orphaned messages.
+- [ ] Mood check-ins save and load consistently.
+- [ ] Missing backend features are not presented as completed flows.
+- [ ] Environment files and secrets are excluded from version control.
+
+Backend API smoke tests use Node's built-in test runner: run `npm test` from `Backend/`. CI also runs frontend type-checking, linting, and a production build. These checks are only a baseline: add database-backed tests for chat persistence, mood CRUD, and cross-user access as those flows are stabilized.

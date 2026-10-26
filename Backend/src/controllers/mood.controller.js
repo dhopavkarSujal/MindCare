@@ -7,14 +7,8 @@ import {
 } from "../services/mood.service.js";
 
 /**
- * Temporary user ID resolver.
- *
- * Before authentication:
- * req.body.userId
- * req.query.userId
- *
- * After authentication:
- * req.user.id
+ * Resolve the authenticated application user.
+ * Never accept user IDs from the request body or query string.
  */
 function getUserId(req) {
   return req.user?.id;
@@ -30,12 +24,12 @@ export async function createMoodController(
   try {
     const userId = getUserId(req);
 
-    const { score, note } = req.body;
+    const { score, note } = req.body || {};
 
     if (!userId) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: "userId is required.",
+        message: "Authenticated user is required.",
       });
     }
 
@@ -107,9 +101,9 @@ export async function getUserMoodsController(
     const userId = getUserId(req);
 
     if (!userId) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: "userId is required.",
+        message: "Authenticated user is required.",
       });
     }
 
@@ -151,9 +145,9 @@ export async function getMoodController(
     const { moodId } = req.params;
 
     if (!userId) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: "userId is required.",
+        message: "Authenticated user is required.",
       });
     }
 
@@ -207,12 +201,12 @@ export async function updateMoodController(
     const {
       score,
       note,
-    } = req.body;
+    } = req.body || {};
 
     if (!userId) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: "userId is required.",
+        message: "Authenticated user is required.",
       });
     }
 
@@ -302,9 +296,9 @@ export async function deleteMoodController(
     const { moodId } = req.params;
 
     if (!userId) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: "userId is required.",
+        message: "Authenticated user is required.",
       });
     }
 

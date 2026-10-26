@@ -1,0 +1,54 @@
+name: MindCare V2 CI
+
+on:
+  pull_request:
+    branches: [main, mindcare-ver2, "mindcare-v2-*"]
+  push:
+    branches: [main, mindcare-ver2, "mindcare-v2-*"]
+
+jobs:
+  backend-smoke-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Backend/package-lock.json
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: Backend
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+        working-directory: Backend
+      - name: Run API smoke tests
+        run: npm test
+        working-directory: Backend
+
+  frontend-quality:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
+      NEXT_PUBLIC_SUPABASE_URL: https://mindcare-ci.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: Frontend
+      - name: Type-check
+        run: npm run typecheck
+        working-directory: Frontend
+      - name: Lint
+        run: npm run lint
+        working-directory: Frontend
+      - name: Production build
+        run: npm run build
+        working-directory: Frontend

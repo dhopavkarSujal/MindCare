@@ -2,6 +2,8 @@ import {
   processChatMessage,
 } from "../services/chat.service.js";
 
+const MAX_MESSAGE_LENGTH = 4000;
+
 
 export async function sendMessageController(
   req,
@@ -68,6 +70,13 @@ export async function sendMessageController(
         success: false,
         message:
           "A valid message is required.",
+      });
+    }
+
+    if (message.trim().length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({
+        success: false,
+        message: `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer.`,
       });
     }
 
