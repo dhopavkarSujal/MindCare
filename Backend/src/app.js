@@ -18,7 +18,9 @@ app.use(cors({
   origin(origin, callback) {
     // Allow server-to-server and health-check requests without an Origin header.
     if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error("Origin is not allowed by CORS."));
+    const error = new Error("Origin is not allowed by CORS.");
+    error.statusCode = 403;
+    return callback(error);
   },
   credentials: true,
 }));
