@@ -39,12 +39,15 @@ export type JournalEntry = {
 export type Resource = {
   id: string;
   title: string;
+  content?: string;
   summary?: string;
   description?: string;
-  sourceUrl?: string;
-  url?: string;
+  externalUrl?: string | null;
+  sourceUrl?: string | null;
+  url?: string | null;
   category?: string;
   source?: string;
+  createdAt?: string;
 };
 
 export type Counsellor = {
