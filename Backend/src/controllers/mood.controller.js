@@ -24,7 +24,7 @@ export async function createMoodController(
   try {
     const userId = getUserId(req);
 
-    const { score, note } = req.body;
+    const { score, note } = req.body || {};
 
     if (!userId) {
       return res.status(401).json({
@@ -201,7 +201,7 @@ export async function updateMoodController(
     const {
       score,
       note,
-    } = req.body;
+    } = req.body || {};
 
     if (!userId) {
       return res.status(401).json({
