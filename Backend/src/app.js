@@ -7,6 +7,7 @@ import moodRoutes from "./routes/mood.routes.js";
 import conversationRoutes from "./routes/conversation.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import resourceRoutes from "./routes/resources.routes.js";
+import journalRoutes from "./routes/journal.routes.js";
 
 const app = express();
 const allowedOrigins = (process.env.FRONTEND_URL ?? "http://localhost:3000")
@@ -34,6 +35,7 @@ app.use("/api/conversations", conversationRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/moods", moodRoutes);
 app.use("/api/resources", resourceRoutes);
+app.use("/api/journal", journalRoutes);
 
 app.use((req, res) => res.status(404).json({
   success: false,
