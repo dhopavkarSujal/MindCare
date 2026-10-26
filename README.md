@@ -56,23 +56,24 @@ The backend must enforce authorization even when a Next.js page is protected. Th
 
 ## Current feature status
 
-This table reflects the source paths and API routes in this branch; it is not a production acceptance test.
+This status reflects the V2 source tree and registered API routes. It is not a claim that every flow has passed a complete end-to-end or production test.
 
 | Feature | Current implementation status |
 |---|---|
-| Login, registration, recovery | Supabase Auth pages and callback are present; Express exposes `GET /api/auth/me` |
-| AI chat | Conversation CRUD and `POST /api/chat` are implemented; Express calls FastAPI |
-| Conversation history | Stored with Prisma; ownership is checked for conversation operations |
-| Mood check-ins | Create, list, retrieve, update, and delete routes are implemented |
-| Dashboard | Frontend summary derives information from mood and conversation endpoints |
-| Public resources | Public page uses a small curated list of external health-organization links |
-| Authenticated resource library | UI calls `/api/resources`, but the current Express app does not register that API |
-| Private journal | UI and API helper functions exist; journal routes and a journal Prisma model are not implemented |
-| Profile and consent settings | UI/API helper functions exist; profile update and consent routes are not implemented |
-| Counselling and bookings | UI/API helper functions exist; counsellor/appointment routes and Prisma models are not implemented |
-| Onboarding | Protected-prefix preparation exists, but onboarding state and workflow are not implemented |
+| Authentication | Supabase Auth pages/session handling are present; Express verifies bearer tokens and exposes `GET /api/auth/me`. |
+| AI chat | `POST /api/chat` forwards a validated request to the separate FastAPI service; persisted messages and analysis are handled by the backend. |
+| AI safety pipeline | Risk-aware response routing and response/request validation have regression tests. OpenRouter calls are mocked in CI; live-provider reliability is not established by those tests. |
+| Conversation history | Conversation create/list/detail/rename/pin/delete routes are implemented with user-ownership checks. |
+| Mood check-ins | Mood create/list/read/update/delete routes are implemented with user-scoped database access. |
+| Resource library | Authenticated resource search/category filters and resource detail routes are implemented. Three curated external resources can be loaded by the seed script. |
+| Private journal | User-scoped list/search, detail, create, update, and delete routes and a Prisma model/migration are implemented. Test against the configured database before production use. |
+| Profile and consents | Profile read/update and consent preference APIs are implemented. Consent defaults are privacy-preserving; saving `share_mood_data` does **not** currently attach mood history to AI requests. |
+| Counselling and appointments | Counsellor listing, date-based slot listing, booking, user's appointment list, cancellation, and admin management routes are implemented. The backend includes an atomic slot-claim path to prevent duplicate booking. |
+| Demo counsellors | Demo data may be inserted in a development database only. Fictional demo profiles are not verified professionals and must not be used for real counselling. |
+| Admin analytics and notifications | Not represented as completed backend features in this version. |
+| Onboarding workflow | Some protected-route preparation exists, but a complete onboarding workflow is not implemented. |
 
-Do not treat a feature as complete just because a page is visible. A complete feature needs a real API contract, backend validation, ownership checks, persistence, loading/empty/error states, and tests.
+A visible page alone does not mean a feature is complete. Verify its API contract, backend validation, permissions, persistence, loading/empty/error states, and database-backed behavior.
 
 ## Repository structure
 
@@ -229,24 +230,36 @@ The AI service currently selects its model in code. Keep the provider key on the
 
 ## API overview
 
-The following routes are registered by the current Express application.
+The Express API uses the `/api` prefix for application routes. Protected routes require a valid Supabase bearer token, except for the health endpoint.
 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/health` | Backend process health |
-| GET | `/api/auth/me` | Verify the token and return the application user |
-| GET, POST | `/api/conversations` | List or create the authenticated user's conversations |
-| GET | `/api/conversations/:conversationId` | Get one owned conversation and its messages |
-| PATCH | `/api/conversations/:conversationId` | Rename a conversation |
-| PATCH | `/api/conversations/:conversationId/pin` | Pin or unpin a conversation |
-| DELETE | `/api/conversations/:conversationId` | Delete a conversation |
-| POST | `/api/chat` | Process a message for an owned conversation |
-| GET, POST | `/api/moods` | List or create mood entries |
+| GET | `/api/auth/me` | Verify token and return the application user |
+| GET, POST | `/api/conversations` | List or create the signed-in user's conversations |
+| GET, PATCH, DELETE | `/api/conversations/:conversationId` | Read, rename, or delete an owned conversation |
+| PATCH | `/api/conversations/:conversationId/pin` | Pin/unpin an owned conversation |
+| POST | `/api/chat` | Process and persist a message and its AI response |
+| GET, POST | `/api/moods` | List or create mood check-ins |
 | GET, PATCH, DELETE | `/api/moods/:moodId` | Read, update, or delete an owned mood entry |
+| GET | `/api/resources?search=&category=` | Search/filter the resource library |
+| GET | `/api/resources/:resourceId` | Read one resource |
+| GET, POST | `/api/journal` | List/search or create journal entries |
+| GET, PUT, DELETE | `/api/journal/:id` | Read, update, or delete an owned journal entry |
+| GET, PUT | `/api/profile` | Read/update the signed-in user's editable profile/preferences |
+| GET, POST | `/api/consents` | Read or save consent preferences |
+| GET | `/api/counsellors` | List active counsellors |
+| GET | `/api/counsellors/:id/slots?date=YYYY-MM-DD` | List available slots for a counsellor and date |
+| GET, POST | `/api/appointments` | List the user's appointments or book a slot |
+| DELETE | `/api/appointments/:appointmentId` | Cancel an owned appointment |
+| GET, POST | `/api/admin/counsellors` | Admin: list or create counsellor profiles |
+| POST | `/api/admin/counsellors/:counsellorId/slots` | Admin: add availability slots |
+| GET | `/api/admin/appointments?status=pending` | Admin: list appointments by status |
+| PATCH | `/api/admin/appointments/:appointmentId/status` | Admin: confirm/cancel an appointment |
 
-Successful Express responses use a `success` field and commonly wrap response data in `data`. Chat sends `{ conversationId, message }` and returns persisted user/assistant messages with analysis metadata.
+The separate FastAPI service exposes `POST /api/v1/chat` for internal use by Express. The browser should call Express, not the AI service or OpenRouter directly.
 
-These frontend helpers currently target routes that do not yet exist in Express: `/journal`, `/resources`, `/profile`, `/consents`, `/counsellors`, and `/appointments`. Implement and test each route before advertising those screens as functional.
+Most Express responses include a `success` field and a `data` object. Check the route/controller schemas for exact request and response fields.
 
 ## Security and privacy
 
@@ -263,25 +276,28 @@ CORS is a browser-origin policy, not authentication. The API must still verify t
 
 ## Development priorities
 
-1. **Stabilize the working flows:** automated regression coverage for auth, conversation ownership, chat persistence/failure handling, mood validation, and dashboard loading.
-2. **Finish server contracts:** implement journal, resources, profile/consent, and counselling routes and data models—or hide those navigation items until ready.
-3. **Consolidate the frontend structure:** keep route files thin, remove placeholder/duplicate organization, and centralize API/error handling without adding unnecessary abstractions.
-4. **Improve resilience and observability:** health checks, sanitized logs, timeouts, request limits, error contracts, and structured latency metrics.
-5. **Optimize with measurements:** profile repeated requests, database queries, rendering, and bundle size before attempting broad performance changes.
-6. **Improve the AI pipeline in a separate phase:** test rule-based risk assessment, model output validation, retrieval grounding, latency, and safe fallback behavior.
+1. **Keep the existing flows stable:** test auth/session expiry, conversation ownership, chat persistence/failure handling, mood CRUD, and dashboard loading.
+2. **Strengthen integration testing:** add database-backed tests for journal, resources, profile/consent, and counselling routes, including cross-user access and concurrent slot booking.
+3. **Improve AI pipeline behavior:** validate risk routing, model output normalization, timeout/fallback behavior, latency, and prompt/history handling with tests as well as controlled live-provider checks.
+4. **Consolidate frontend structure:** keep route files thin, remove duplicate/placeholder implementations, and centralize API/error handling where it reduces real duplication.
+5. **Improve observability and resilience:** sanitized logs, timeouts, consistent error contracts, request limits, and useful latency metrics.
+6. **Optimize from measurements:** profile requests, Prisma queries, rendering, and bundle size before broad performance changes.
 
 ## Validation checklist
 
-Before considering a change complete:
+Before treating a change as complete:
 
-- [ ] Frontend type-check, lint, and production build pass.
-- [ ] Backend starts, connects to the intended database, and exposes health status.
-- [ ] AI service starts and validates its request/response schema.
-- [ ] Login, logout, protected redirects, and expired-token handling work.
-- [ ] A user cannot read or modify another user's conversations or mood entries.
-- [ ] Chat survives provider timeout and persistence failures without misleading orphaned messages.
-- [ ] Mood check-ins save and load consistently.
-- [ ] Missing backend features are not presented as completed flows.
+- [ ] Frontend TypeScript check, lint, and production build pass.
+- [ ] Backend smoke tests and AI-service regression tests pass.
+- [ ] The configured development database has the committed Prisma migrations applied.
+- [ ] Authentication, logout, protected redirects, and expired-token behavior work.
+- [ ] A user cannot read or modify another user's conversations, moods, journal entries, profile, or appointments.
+- [ ] Chat behavior is checked for successful responses, AI timeouts, provider errors, and persistence failures.
+- [ ] Resources load, filter, and open from the authenticated UI.
+- [ ] Journal entries can be created, reopened, edited, searched, and deleted.
+- [ ] Profile/consent changes persist after a fresh login.
+- [ ] Counselling slots can be booked; the same slot cannot be claimed twice; user cancellation and admin status transitions are checked.
+- [ ] Non-admin users cannot access admin endpoints.
 - [ ] Environment files and secrets are excluded from version control.
 
-Backend API smoke tests use Node's built-in test runner: run `npm test` from `Backend/`. CI also runs frontend type-checking, linting, and a production build. These checks are only a baseline: add database-backed tests for chat persistence, mood CRUD, and cross-user access as those flows are stabilized.
+CI covers smoke tests, mocked AI pipeline regression tests, frontend type-checking, linting, and a production build. It does not by itself prove full database-backed integration, live OpenRouter behavior, or production readiness.
