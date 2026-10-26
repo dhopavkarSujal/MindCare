@@ -325,214 +325,105 @@ export async function processChatMessage({
   // 5. CALL FASTAPI AI SERVICE
   // ==========================================
 
-  const aiStart = performance.now();
-  const aiResult = await generateChatResponse({
-    message: cleanedMessage,
-    conversation: context,
-  });
+  try {
+    // Measure only the external AI call; do not log user message content.
+    const aiStart = performance.now();
+    const aiResult = await generateChatResponse({
+      message: cleanedMessage,
+      conversation: context,
+    });
+    const aiDuration = performance.now() - aiStart;
 
-  const aiDuration = performance.now() - aiStart;
-
-  console.info(
-    `[CHAT-PERFORMANCE] fastapi_request=${(aiDuration / 1000).toFixed(2)}s`
-  );
-
-  // ==========================================
-  // 6. VALIDATE AI RESPONSE
-  // ==========================================
-
-  if (
-    !aiResult ||
-    !aiResult.reply
-  ) {
-
-    const error = new Error(
-      "AI service returned an invalid response."
+    console.info(
+      `[CHAT-PERFORMANCE] fastapi_request=${(aiDuration / 1000).toFixed(2)}s`
     );
 
-    error.statusCode = 502;
+    if (!aiResult || typeof aiResult.reply !== "string" || !aiResult.reply.trim()) {
+      const error = new Error("AI service returned an invalid response.");
+      error.statusCode = 502;
+      throw error;
+    }
 
-    throw error;
-  }
-
-
-  // ==========================================
-  // 7. SAVE AI MESSAGE
-  // ==========================================
-  //
-  // IMPORTANT:
-  // Prisma enum is ASSISTANT, not AI.
-  // ==========================================
-
-  const aiMessage =
-    await prisma.message.create({
-
-      data: {
-
-        conversationId,
-
-        sender: "ASSISTANT",
-
-        text: aiResult.reply,
-      },
-    });
-
-
-  // ==========================================
-  // 8. SAVE AI ANALYSIS
-  // ==========================================
-
-  const riskLevel =
-    normalizeRiskLevel(
-      aiResult.riskLevel
-    );
-
-
-  const isCrisis =
-    aiResult.action === "crisis" ||
-    riskLevel === "HIGH";
-
-
-  const analysis =
-    await prisma.analysisLog.create({
-
-      data: {
-
-        messageId:
-          aiMessage.id,
-
-        sentiment:
-          aiResult.sentiment ||
-          "unknown",
-
-        /*
-         * Emotion is not yet returned by
-         * the current FastAPI service.
-         *
-         * "unknown" is intentional rather
-         * than inventing an emotion result.
-         *
-         * We will replace this after the
-         * emotion layer is implemented.
-         */
-        emotion:
-          aiResult.emotion ||
-          "unknown",
-
-        intent:
-          aiResult.intent ||
-          "general",
-
-        riskLevel,
-
-        isCrisis,
-
-        sentimentScore:
-          aiResult.sentimentScore,
-
-        emotionScore:
-          aiResult.emotionScore,
-
-        riskScore:
-          aiResult.riskScore,
-
-        confidence:
-          aiResult.confidence,
-
-        rawResponse:
-          aiResult.rawResponse,
-      },
-    });
-
-    // ==========================================
-  // 9. UPDATE CONVERSATION TITLE
-  // ==========================================
-
-  const isDefaultTitle =
-    conversation.title ===
-    "New Support Session";
-
-  const normalizedIntent =
-    String(
-      aiResult.intent || ""
-    )
-      .trim()
-      .toLowerCase();
-
-  const aiGeneratedTitle =
-    String(
-      aiResult.conversationTitle || ""
-    ).trim();
-
-  const usableAiTitle =
-    aiGeneratedTitle &&
-    !isGenericTitle(
-      aiGeneratedTitle
-    )
+    const riskLevel = normalizeRiskLevel(aiResult.riskLevel);
+    const isCrisis = aiResult.action === "crisis" || riskLevel === "HIGH";
+    const isDefaultTitle = conversation.title === "New Support Session";
+    const normalizedIntent = String(aiResult.intent || "").trim().toLowerCase();
+    const aiGeneratedTitle = String(aiResult.conversationTitle || "").trim();
+    const usableAiTitle = aiGeneratedTitle && !isGenericTitle(aiGeneratedTitle)
       ? aiGeneratedTitle
       : null;
-
-  const fallbackTitle =
-    generateFallbackTitle({
+    const fallbackTitle = generateFallbackTitle({
       message: cleanedMessage,
       context,
       intent: normalizedIntent,
     });
+    const generatedTitle = usableAiTitle || fallbackTitle;
 
-  const generatedTitle =
-    usableAiTitle ||
-    fallbackTitle;
+    const conversationUpdateData = { updatedAt: new Date() };
+    if (isDefaultTitle && generatedTitle) {
+      conversationUpdateData.title = generatedTitle;
+    }
 
-  const conversationUpdateData = {
-    updatedAt: new Date(),
-  };
+    // Persist the assistant reply, its analysis, and conversation timestamp atomically.
+    // If any write fails, Prisma rolls back the entire response transaction.
+    const { aiMessage, analysis } = await prisma.$transaction(async (tx) => {
+      const aiMessage = await tx.message.create({
+        data: {
+          conversationId,
+          sender: "ASSISTANT",
+          text: aiResult.reply,
+        },
+      });
 
-  if (
-    isDefaultTitle &&
-    generatedTitle
-  ) {
-    conversationUpdateData.title =
-      generatedTitle;
+      const analysis = await tx.analysisLog.create({
+        data: {
+          messageId: aiMessage.id,
+          sentiment: aiResult.sentiment || "unknown",
+          emotion: aiResult.emotion || "unknown",
+          intent: aiResult.intent || "general",
+          riskLevel,
+          isCrisis,
+          sentimentScore: aiResult.sentimentScore,
+          emotionScore: aiResult.emotionScore,
+          riskScore: aiResult.riskScore,
+          confidence: aiResult.confidence,
+          rawResponse: aiResult.rawResponse,
+        },
+      });
+
+      await tx.conversation.update({
+        where: { id: conversationId },
+        data: conversationUpdateData,
+      });
+
+      return { aiMessage, analysis };
+    });
+
+    return {
+      userMessage,
+      aiMessage,
+      analysis,
+      conversationTitle: generatedTitle || conversation.title,
+      action: aiResult.action,
+      riskLevel: aiResult.riskLevel,
+      intent: aiResult.intent,
+      sentiment: aiResult.sentiment,
+      emotion: aiResult.emotion,
+      suggestions: aiResult.suggestions || [],
+    };
+  } catch (error) {
+    // A failed AI request must not leave a user message that looks unanswered.
+    // The response writes above are transactional, so this cleanup only needs
+    // to remove the user message created before calling the AI service.
+    try {
+      await prisma.message.delete({ where: { id: userMessage.id } });
+    } catch (cleanupError) {
+      console.error(
+        "[CHAT] Failed to clean up an unanswered user message:",
+        cleanupError instanceof Error ? cleanupError.message : "Unknown cleanup error",
+      );
+    }
+
+    throw error;
   }
-
-  await prisma.conversation.update({
-    where: {
-      id: conversationId,
-    },
-
-    data: conversationUpdateData,
-  });
-
-  // ==========================================
-  // 10. RETURN RESULT
-  // ==========================================
-  return {
-    userMessage,
-
-    aiMessage,
-
-    analysis,
-
-    conversationTitle:
-      generatedTitle ||
-      conversation.title,
-
-    action:
-      aiResult.action,
-
-    riskLevel:
-      aiResult.riskLevel,
-
-    intent:
-      aiResult.intent,
-
-    sentiment:
-      aiResult.sentiment,
-
-    emotion:
-      aiResult.emotion,
-
-    suggestions:
-      aiResult.suggestions || [],
-  };
 }
