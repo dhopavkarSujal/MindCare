@@ -3,7 +3,6 @@
   <strong>A digital mental-health support platform designed to make student wellbeing support more accessible, private, and easier to reach.</strong>
 </p>
 
-<<<<<<< HEAD
 <p align="center">
   <a href="#features">Features</a> •
   <a href="#system-architecture">Architecture</a> •
