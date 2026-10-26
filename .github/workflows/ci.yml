@@ -2,9 +2,9 @@ name: MindCare V2 CI
 
 on:
   pull_request:
-    branches: [mindcare-ver2, "mindcare-v2-*"]
+    branches: [main, mindcare-ver2, "mindcare-v2-*"]
   push:
-    branches: [mindcare-ver2, "mindcare-v2-*"]
+    branches: [main, mindcare-ver2, "mindcare-v2-*"]
 
 jobs:
   backend-smoke-tests:
