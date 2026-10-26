@@ -10,6 +10,9 @@ import resourceRoutes from "./routes/resources.routes.js";
 import journalRoutes from "./routes/journal.routes.js";
 import profileRoutes from "./routes/profile.routes.js";
 import consentRoutes from "./routes/consents.routes.js";
+import counsellorRoutes from "./routes/counsellors.routes.js";
+import appointmentRoutes from "./routes/appointments.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 const app = express();
 const allowedOrigins = (process.env.FRONTEND_URL ?? "http://localhost:3000")
@@ -41,6 +44,9 @@ app.use("/api/resources", resourceRoutes);
 app.use("/api/journal", journalRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/consents", consentRoutes);
+app.use("/api/counsellors", counsellorRoutes);
+app.use("/api/appointments", appointmentRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use((req, res) => res.status(404).json({
   success: false,

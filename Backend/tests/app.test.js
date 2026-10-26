@@ -63,6 +63,30 @@ test("protected API routes reject requests without a bearer token", async () => 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ permission: "notifications", enabled: true }),
     }),
+    fetch(`${baseUrl}/api/counsellors`),
+    fetch(`${baseUrl}/api/counsellors/${sampleId}/slots?date=2026-11-02`),
+    fetch(`${baseUrl}/api/appointments`),
+    fetch(`${baseUrl}/api/appointments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ counsellorId: sampleId, startTime: "2026-11-02T10:00:00+05:30" }),
+    }),
+    fetch(`${baseUrl}/api/appointments/${sampleId}`, { method: "DELETE" }),
+    fetch(`${baseUrl}/api/admin/counsellors`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Test counsellor", isActive: true }),
+    }),
+    fetch(`${baseUrl}/api/admin/counsellors/${sampleId}/slots`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ startsAt: "2026-11-02T10:00:00+05:30", endsAt: "2026-11-02T10:30:00+05:30" }),
+    }),
+    fetch(`${baseUrl}/api/admin/appointments/${sampleId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "confirmed" }),
+    }),
     fetch(`${baseUrl}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -70,7 +94,7 @@ test("protected API routes reject requests without a bearer token", async () => 
     }),
   ]);
 
-  assert.deepEqual(responses.map((response) => response.status), Array(14).fill(401));
+  assert.ok(responses.every((response) => response.status === 401), "every protected endpoint should reject missing bearer tokens");
   const payloads = await Promise.all(responses.map((response) => response.json()));
   assert.ok(payloads.every((payload) => payload.success === false));
 });
