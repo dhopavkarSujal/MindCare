@@ -10,7 +10,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "node prisma/seed.js",
-    "test": "node --test"
+    "test": "node --test",
+    "prisma:seed:demo-counsellors": "node prisma/seed-demo-counsellors.js"
   },
   "keywords": [],
   "author": "",
