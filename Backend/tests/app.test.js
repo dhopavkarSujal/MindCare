@@ -32,11 +32,25 @@ test("health endpoint returns healthy status", async () => {
 });
 
 test("protected API routes reject requests without a bearer token", async () => {
+  const journalId = "b32a5fc0-4df9-4e44-97d4-b729ded8d001";
   const responses = await Promise.all([
     fetch(`${baseUrl}/api/moods`),
     fetch(`${baseUrl}/api/conversations`),
     fetch(`${baseUrl}/api/resources`),
-    fetch(`${baseUrl}/api/resources/b32a5fc0-4df9-4e44-97d4-b729ded8d001`),
+    fetch(`${baseUrl}/api/resources/${journalId}`),
+    fetch(`${baseUrl}/api/journal`),
+    fetch(`${baseUrl}/api/journal/${journalId}`),
+    fetch(`${baseUrl}/api/journal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "private reflection" }),
+    }),
+    fetch(`${baseUrl}/api/journal/${journalId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "updated reflection" }),
+    }),
+    fetch(`${baseUrl}/api/journal/${journalId}`, { method: "DELETE" }),
     fetch(`${baseUrl}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -44,7 +58,7 @@ test("protected API routes reject requests without a bearer token", async () => 
     }),
   ]);
 
-  assert.deepEqual(responses.map((response) => response.status), [401, 401, 401, 401, 401]);
+  assert.deepEqual(responses.map((response) => response.status), Array(10).fill(401));
   const payloads = await Promise.all(responses.map((response) => response.json()));
   assert.ok(payloads.every((payload) => payload.success === false));
 });
