@@ -26,7 +26,8 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json({ limit: "32kb" }));
+// The Journal UI accepts up to 30,000 characters; allow JSON escaping/UTF-8 overhead.
+app.use(express.json({ limit: "256kb" }));
 app.use(express.urlencoded({ extended: true, limit: "32kb" }));
 
 app.get("/health", (_req, res) => res.status(200).json({ status: "ok" }));
