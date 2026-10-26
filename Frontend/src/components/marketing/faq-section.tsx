@@ -29,7 +29,6 @@ export function FaqSection() {
               className="mc-faq-item"
               key={item.question}
               open={index === 0}
-              style={{ "--faq-index": index } as React.CSSProperties}
             >
               <summary>
                 <span className="mc-faq-item__question">
