@@ -168,6 +168,23 @@ cd ..
 
 Run migrations only against the intended development database. Review pending migrations and back up important data before applying schema changes to a shared or production database.
 
+### Optional: populate demo counsellors for a showcase
+
+This creates **fictional demo profiles** and upcoming availability slots in the PostgreSQL database referenced by `Backend/.env` (`DIRECT_URL`). They are for testing the interface only—not real counsellors or real clinical appointments.
+
+Before running this command, confirm that `DIRECT_URL` points to your intended **development Supabase database**, and apply the counselling migration first. The script refuses to run in `NODE_ENV=production` and requires the explicit `ALLOW_DEMO_COUNSELLOR_SEED=true` flag.
+
+**Windows CMD** (run from the repository's `Backend` folder):
+
+```cmd
+set ALLOW_DEMO_COUNSELLOR_SEED=true
+npm run prisma:seed:demo-counsellors
+set ALLOW_DEMO_COUNSELLOR_SEED=
+```
+
+The script creates three clearly labeled demo counsellors with a rolling two-week calendar. It is safe to rerun: stable IDs prevent duplicate profiles, and existing booked slots are not marked available again. Remove these demo records before using the app with real clients.
+
+
 ### 4. Start all development services
 
 After the dependencies and environment files are configured, run from the repository root:
