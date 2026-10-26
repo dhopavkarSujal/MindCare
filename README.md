@@ -301,19 +301,3 @@ Before treating a change as complete:
 - [ ] Environment files and secrets are excluded from version control.
 
 CI covers smoke tests, mocked AI pipeline regression tests, frontend type-checking, linting, and a production build. It does not by itself prove full database-backed integration, live OpenRouter behavior, or production readiness.
-
-
-
-Before considering a change complete:
-
-- [ ] Frontend type-check, lint, and production build pass.
-- [ ] Backend starts, connects to the intended database, and exposes health status.
-- [ ] AI service starts and validates its request/response schema.
-- [ ] Login, logout, protected redirects, and expired-token handling work.
-- [ ] A user cannot read or modify another user's conversations or mood entries.
-- [ ] Chat survives provider timeout and persistence failures without misleading orphaned messages.
-- [ ] Mood check-ins save and load consistently.
-- [ ] Missing backend features are not presented as completed flows.
-- [ ] Environment files and secrets are excluded from version control.
-
-Backend API smoke tests use Node's built-in test runner: run `npm test` from `Backend/`. CI also runs frontend type-checking, linting, and a production build. These checks are only a baseline: add database-backed tests for chat persistence, mood CRUD, and cross-user access as those flows are stabilized.
