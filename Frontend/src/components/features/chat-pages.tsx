@@ -26,7 +26,9 @@ export function ConversationListPage() {
     catch (caught) { setError(errorText(caught)); }
     finally { setLoading(false); }
   }, []);
-  useEffect(() => { void load(); }, [load]);
+    useEffect(() => {
+    void load();
+  }, [load]);
 
   async function newConversation() {
     setCreating(true); setError("");
