@@ -57,6 +57,7 @@ model User {
   moodLogs       MoodLog[]
   journalEntries JournalEntry[]
   consents       ConsentPreference[]
+  appointments   Appointment[]
 
   @@index([role])
 }
@@ -216,4 +217,70 @@ model ConsentPreference {
 
   @@unique([userId, permission])
   @@index([userId])
+}
+
+
+// ==========================================
+// COUNSELLING AND APPOINTMENTS
+// ==========================================
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+model Counsellor {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  specialty String?
+  bio       String?  @db.Text
+  avatarUrl String?
+  timeZone  String   @default("Asia/Kolkata")
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  availabilitySlots AvailabilitySlot[]
+  appointments     Appointment[]
+
+  @@index([isActive, name])
+}
+
+model AvailabilitySlot {
+  id           String   @id @default(uuid()) @db.Uuid
+  counsellorId String   @db.Uuid
+  startsAt     DateTime
+  endsAt       DateTime
+  isAvailable  Boolean  @default(true)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  counsellor   Counsellor   @relation(fields: [counsellorId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@unique([counsellorId, startsAt])
+  @@index([counsellorId, isActive, startsAt])
+}
+
+model Appointment {
+  id           String            @id @default(uuid()) @db.Uuid
+  userId       String            @db.Uuid
+  counsellorId String            @db.Uuid
+  slotId       String            @db.Uuid
+  startsAt     DateTime
+  endsAt       DateTime
+  status       AppointmentStatus @default(PENDING)
+  reason       String?           @db.Text
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  counsellor Counsellor       @relation(fields: [counsellorId], references: [id], onDelete: Restrict)
+  slot       AvailabilitySlot @relation(fields: [slotId], references: [id], onDelete: Restrict)
+
+  @@index([userId, startsAt])
+  @@index([counsellorId, startsAt])
+  @@index([status, startsAt])
 }
