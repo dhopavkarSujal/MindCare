@@ -284,4 +284,4 @@ Before considering a change complete:
 - [ ] Missing backend features are not presented as completed flows.
 - [ ] Environment files and secrets are excluded from version control.
 
-Automated test scripts are not yet defined in the current package manifests; add a test strategy as part of the stabilization work.
+Backend API smoke tests use Node's built-in test runner: run `npm test` from `Backend/`. CI also runs frontend type-checking, linting, and a production build. These checks are only a baseline: add database-backed tests for chat persistence, mood CRUD, and cross-user access as those flows are stabilized.
