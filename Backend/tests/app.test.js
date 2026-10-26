@@ -35,6 +35,8 @@ test("protected API routes reject requests without a bearer token", async () => 
   const responses = await Promise.all([
     fetch(`${baseUrl}/api/moods`),
     fetch(`${baseUrl}/api/conversations`),
+    fetch(`${baseUrl}/api/resources`),
+    fetch(`${baseUrl}/api/resources/b32a5fc0-4df9-4e44-97d4-b729ded8d001`),
     fetch(`${baseUrl}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -42,7 +44,7 @@ test("protected API routes reject requests without a bearer token", async () => 
     }),
   ]);
 
-  assert.deepEqual(responses.map((response) => response.status), [401, 401, 401]);
+  assert.deepEqual(responses.map((response) => response.status), [401, 401, 401, 401, 401]);
   const payloads = await Promise.all(responses.map((response) => response.json()));
   assert.ok(payloads.every((payload) => payload.success === false));
 });
