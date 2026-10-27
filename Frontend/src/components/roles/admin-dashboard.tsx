@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, CalendarCheck, Check, CircleAlert, Clock3, RefreshCw, ShieldCheck, Users, X } from "lucide-react";
+import { CalendarCheck, Check, Clock3, RefreshCw, ShieldCheck, Users, X } from "lucide-react";
 import { RoleDashboardShell } from "@/components/roles/role-dashboard-shell";
 import { Feedback } from "@/components/app/feedback";
 import { getAdminAppointments, getAdminCounsellors, updateAdminAppointmentStatus } from "@/lib/api/services";
@@ -99,7 +99,7 @@ export function AdminDashboard({ email }: Props) {
         ) : (
           <div className="mc-role-table-wrap"><table className="mc-role-table"><thead><tr><th>Student</th><th>Counselor</th><th>Appointment time</th><th>Status</th><th>Actions</th></tr></thead><tbody>
             {appointments.map((appointment) => <tr key={appointment.appointmentId}>
-              <td><strong>{appointment.userName || "Student"}</strong><small>{appointment.userEmail || "Email not provided"}</small>{appointment.reason && <span className="mc-role-reason" title={appointment.reason}>Reason: {appointment.reason}</span>}</td>
+              <td><strong>{appointment.userName || "Student"}</strong><small>{appointment.userEmail || "Email not provided"}</small></td>
               <td>{appointment.counsellorName || "Counselor"}</td>
               <td>{formatDate(appointment.startsAt)}</td>
               <td><span className={`mc-role-status mc-role-status--${appointment.status}`}>{statusLabel(appointment.status)}</span></td>
