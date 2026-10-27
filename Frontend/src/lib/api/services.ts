@@ -1,5 +1,5 @@
 import { apiRequest, unwrapData } from "@/lib/api/client";
-import type { Appointment, AppointmentSlot, Conversation, Counsellor, JournalEntry, MoodEntry, Resource } from "@/lib/types/api";
+import type { AdminAppointment, AdminCounsellor, Appointment, AppointmentSlot, Conversation, Counsellor, JournalEntry, MoodEntry, Resource } from "@/lib/types/api";
 
 function arrayFrom<T>(payload: unknown): T[] {
   const result = unwrapData<unknown>(payload);
