@@ -8,7 +8,7 @@ import {
 } from "../services/counsellor-portal.service.js";
 
 const UUID_PATTERN = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
-const ISO_WITH_ZONE_PATTERN = /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,3})?)?(?:Z|[+-]\\d{2}:\\d{2})$/i;
+const ISO_WITH_ZONE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/i;
 const VALID_STATUSES = ["pending", "confirmed", "cancelled", "rejected", "completed"];
 
 function badRequest(res, message) {
