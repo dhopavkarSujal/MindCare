@@ -1,4 +1,4 @@
-import { CalendarCheck, ClipboardList, HeartHandshake, ShieldCheck, Users } from "lucide-react";
+import { CalendarCheck, ClipboardList, Clock3, HeartHandshake, ShieldCheck, Users } from "lucide-react";
 import { RoleDashboardShell } from "@/components/roles/role-dashboard-shell";
 
 type Props = { email: string; name: string };
@@ -15,7 +15,7 @@ export function CounselorDashboard({ email, name }: Props) {
 
       <section className="mc-role-stats" aria-label="Counselor workspace summary">
         <article className="mc-role-stat"><span className="mc-role-stat__icon"><CalendarCheck size={19} /></span><div><span>Assigned appointments</span><strong>Not connected</strong><small>Requires a counselor profile link</small></div></article>
-        <article className="mc-role-stat"><span className="mc-role-stat__icon mc-role-stat__icon--amber"><Clock3Icon /></span><div><span>Availability</span><strong>Not configured</strong><small>Schedule management is not linked yet</small></div></article>
+        <article className="mc-role-stat"><span className="mc-role-stat__icon mc-role-stat__icon--amber"><Clock3 size={19} /></span><div><span>Availability</span><strong>Not configured</strong><small>Schedule management is not linked yet</small></div></article>
         <article className="mc-role-stat"><span className="mc-role-stat__icon mc-role-stat__icon--green"><Users size={19} /></span><div><span>Student sessions</span><strong>Not available</strong><small>Will appear after secure assignment</small></div></article>
       </section>
 
@@ -38,6 +38,3 @@ export function CounselorDashboard({ email, name }: Props) {
   );
 }
 
-function Clock3Icon() {
-  return <CalendarCheck size={19} />;
-}
