@@ -22,6 +22,8 @@ export function getSupabaseEnv(): { url: string; key: string } | null {
 
 /** Routes that require a signed-in user. Enforced in src/proxy.ts and the (app) layout. */
 export const PROTECTED_PREFIXES = [
+  "/admin",
+  "/counselor",
   "/dashboard",
   "/chat",
   "/mood",
