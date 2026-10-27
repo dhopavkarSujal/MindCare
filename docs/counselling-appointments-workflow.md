@@ -2,7 +2,7 @@
 
 ## Workflow
 
-1. Students open `/app/counselling`, browse the five active counsellor profiles, select a date and an available future slot, and submit an optional note. The API creates a `PENDING` appointment.
+1. Students open `/counselling`, browse the five active counsellor profiles, select a date and an available future slot, and submit an optional note. The API creates a `PENDING` appointment.
 2. The backend reserves the slot inside a database transaction. A conditional slot claim prevents two requests from claiming the same slot. A student cannot create overlapping pending/confirmed appointments.
 3. Admins use `/admin` to review requests and confirm or reject pending appointments. They can publish/hide counsellor listings, link a counsellor login, and add availability.
 4. Rejecting or cancelling a future request reopens the slot only if the slot remains active. Appointment rows are retained as history.
