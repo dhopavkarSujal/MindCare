@@ -51,7 +51,10 @@ export function AdminDashboard({ email }: Props) {
     setRefreshing(false);
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => { void load(); });
+    return () => window.cancelAnimationFrame(frame);
+  }, [load]);
 
   const pendingCount = useMemo(() => appointments.filter((item) => item.status === "pending").length, [appointments]);
   const confirmedCount = useMemo(() => appointments.filter((item) => item.status === "confirmed").length, [appointments]);
