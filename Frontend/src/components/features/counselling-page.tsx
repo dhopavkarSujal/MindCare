@@ -61,7 +61,7 @@ export function CounsellingPage() {
   useEffect(() => { if (selected && date) void loadSlots(selected, date); }, [selected, date, loadSlots]);
 
   const selectedCounsellor = counsellors.find((person) => person.id === selected);
-  const upcoming = useMemo(() => currentTime === null ? [] : appointments.filter((appointment) => appointment.status !== "cancelled" && new Date(appointment.startsAt).getTime() >= currentTime).sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()), [appointments, currentTime]);
+  const upcoming = useMemo(() => currentTime === null ? [] : [...appointments].sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()), [appointments, currentTime]);
 
   async function book() {
     if (!selected || !selectedSlot) { setError("Choose a counsellor and an available time first."); return; }
@@ -74,7 +74,7 @@ export function CounsellingPage() {
   async function cancel(id: string) {
     if (!window.confirm("Cancel this appointment?")) return;
     setCancelling(id); setAppointmentError("");
-    try { await cancelAppointment(id); setAppointments((current) => current.filter((item) => item.appointmentId !== id)); }
+    try { await cancelAppointment(id); setAppointments(await getAppointments()); }
     catch (caught) { setAppointmentError(errorText(caught)); }
     finally { setCancelling(""); }
   }
@@ -96,9 +96,9 @@ export function CounsellingPage() {
       </section>
     </div>
 
-    <section className="mc-card mc-appointments-card"><div className="mc-card-heading"><div><h2>Your appointments</h2><p>Only entries returned by MindCare are shown here.</p></div><button className="mc-icon-button" type="button" onClick={() => void load()} aria-label="Refresh appointments"><RefreshCw size={15} /></button></div>
+    <section className="mc-card mc-appointments-card"><div className="mc-card-heading"><div><h2>Your appointments</h2><p>Upcoming bookings and prior appointment outcomes are shown here.</p></div><button className="mc-icon-button" type="button" onClick={() => void load()} aria-label="Refresh appointments"><RefreshCw size={15} /></button></div>
       {appointmentError && <Feedback kind="error">{appointmentError}</Feedback>}
-      {upcoming.length ? <div className="mc-appointment-list">{upcoming.map((appointment) => <article key={appointment.appointmentId} className="mc-appointment-row"><span className="mc-appointment-icon"><CalendarDays size={16} /></span><div className="mc-appointment-main"><strong>{appointment.counsellorName || "Counselling appointment"}</strong><span>{new Date(appointment.startsAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span></div><span className={`mc-appointment-status is-${appointment.status}`}>{appointment.status}</span>{appointment.status !== "cancelled" && <button className="mc-button mc-button--secondary" type="button" onClick={() => void cancel(appointment.appointmentId)} disabled={cancelling === appointment.appointmentId}>{cancelling === appointment.appointmentId ? "Cancelling…" : "Cancel"}</button>}</article>)}</div> : <EmptyPanel icon={<CalendarDays size={20} />} title="No upcoming appointments" description="Confirmed or pending appointments will appear here after the backend returns them." />}
+      {upcoming.length ? <div className="mc-appointment-list">{upcoming.map((appointment) => <article key={appointment.appointmentId} className="mc-appointment-row"><span className="mc-appointment-icon"><CalendarDays size={16} /></span><div className="mc-appointment-main"><strong>{appointment.counsellorName || "Counselling appointment"}</strong><span>{new Date(appointment.startsAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span></div><span className={`mc-appointment-status is-${appointment.status}`}>{appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}</span>{appointment.status !== "cancelled" && <button className="mc-button mc-button--secondary" type="button" onClick={() => void cancel(appointment.appointmentId)} disabled={cancelling === appointment.appointmentId}>{cancelling === appointment.appointmentId ? "Cancelling…" : "Cancel"}</button>}</article>)}</div> : <EmptyPanel icon={<CalendarDays size={20} />} title="No appointments yet" description="Your booking requests and appointment history will appear here." />}
     </section>
   </div>;
 }

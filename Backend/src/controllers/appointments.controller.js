@@ -93,8 +93,8 @@ export async function adminUpdateAppointmentStatusController(req, res) {
   if (!UUID_PATTERN.test(appointmentId)) return badRequest(res, "appointmentId must be a valid UUID.");
 
   const { status } = req.body ?? {};
-  if (!["confirmed", "cancelled"].includes(status)) {
-    return badRequest(res, "status must be either confirmed or cancelled.");
+  if (!["confirmed", "cancelled", "rejected"].includes(status)) {
+    return badRequest(res, "status must be confirmed, rejected, or cancelled.");
   }
 
   try {
@@ -114,8 +114,8 @@ export async function adminUpdateAppointmentStatusController(req, res) {
 export async function adminGetAppointmentsController(req, res) {
   const status = req.query.status ?? "";
   if (typeof status !== "string") return badRequest(res, "status must be a single value.");
-  if (status && !["pending", "confirmed", "cancelled"].includes(status)) {
-    return badRequest(res, "status must be pending, confirmed, or cancelled.");
+  if (status && !["pending", "confirmed", "cancelled", "rejected", "completed"].includes(status)) {
+    return badRequest(res, "status must be pending, confirmed, cancelled, rejected, or completed.");
   }
 
   try {

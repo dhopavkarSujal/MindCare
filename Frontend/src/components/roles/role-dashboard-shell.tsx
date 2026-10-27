@@ -56,11 +56,13 @@ export function RoleDashboardShell({ role, email, children }: Props) {
             <>
               <a href="#appointments"><CalendarCheck size={16} /> Appointments</a>
               <a href="#counsellors"><ClipboardList size={16} /> Counselor directory</a>
+              <a href="#availability"><CalendarCheck size={16} /> Availability</a>
             </>
           ) : (
             <>
-              <a href="#schedule"><CalendarCheck size={16} /> Schedule</a>
-              <a href="#workspace-guide"><ClipboardList size={16} /> Workspace guide</a>
+              <a href="#schedule"><CalendarCheck size={16} /> Availability</a>
+              <a href="#appointments"><ClipboardList size={16} /> Appointments</a>
+              <a href="#workspace-guide"><ShieldCheck size={16} /> Workspace guide</a>
             </>
           )}
         </nav>

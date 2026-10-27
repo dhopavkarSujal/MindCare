@@ -1,5 +1,5 @@
 import { apiRequest, unwrapData } from "@/lib/api/client";
-import type { AdminAppointment, AdminCounsellor, Appointment, AppointmentSlot, Conversation, Counsellor, JournalEntry, MoodEntry, Resource } from "@/lib/types/api";
+import type { AdminAppointment, AdminCounsellor, Appointment, AppointmentSlot, Conversation, Counsellor, CounsellorAccount, CounsellorAppointment, CounsellorAvailabilitySlot, CounsellorWorkspace, JournalEntry, MoodEntry, Resource } from "@/lib/types/api";
 
 function arrayFrom<T>(payload: unknown): T[] {
   const result = unwrapData<unknown>(payload);
@@ -57,9 +57,53 @@ export async function getAdminAppointments(status = "") {
 export async function getAdminCounsellors() {
   return arrayFrom<AdminCounsellor>(await apiRequest("/admin/counsellors"));
 }
-export async function updateAdminAppointmentStatus(id: string, status: "confirmed" | "cancelled") {
+export async function updateAdminAppointmentStatus(id: string, status: "confirmed" | "cancelled" | "rejected") {
   return apiRequest(`/admin/appointments/${encodeURIComponent(id)}/status`, {
     method: "PATCH",
     body: { status },
   });
+}
+export async function getAdminCounsellorUsers() {
+  return arrayFrom<CounsellorAccount>(await apiRequest("/admin/counselor-users"));
+}
+export async function linkAdminCounsellorAccount(counsellorId: string, userId: string | null) {
+  return apiRequest(`/admin/counsellors/${encodeURIComponent(counsellorId)}/account`, {
+    method: "PATCH",
+    body: { userId },
+  });
+}
+export async function updateAdminCounsellor(counsellorId: string, isActive: boolean) {
+  return apiRequest(`/admin/counsellors/${encodeURIComponent(counsellorId)}`, {
+    method: "PATCH",
+    body: { isActive },
+  });
+}
+export async function createAdminCounsellorSlot(counsellorId: string, input: { startsAt: string; endsAt: string }) {
+  return apiRequest(`/admin/counsellors/${encodeURIComponent(counsellorId)}/slots`, {
+    method: "POST",
+    body: input,
+  });
+}
+
+/** Counselor-scoped portal APIs. The backend derives the counselor profile from the authenticated user. */
+export async function getCounsellorWorkspace() {
+  return unwrapData<CounsellorWorkspace>(await apiRequest("/counselor/me"));
+}
+export async function getCounsellorAppointments(status = "") {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  const suffix = params.size ? `?${params.toString()}` : "";
+  return arrayFrom<CounsellorAppointment>(await apiRequest(`/counselor/appointments${suffix}`));
+}
+export async function getCounsellorAvailability() {
+  return arrayFrom<CounsellorAvailabilitySlot>(await apiRequest("/counselor/slots"));
+}
+export async function createCounsellorAvailability(input: { startsAt: string; endsAt: string }) {
+  return apiRequest("/counselor/slots", { method: "POST", body: input });
+}
+export async function deactivateCounsellorAvailability(slotId: string) {
+  return apiRequest(`/counselor/slots/${encodeURIComponent(slotId)}`, { method: "PATCH", body: { isActive: false } });
+}
+export async function completeCounsellorAppointment(appointmentId: string) {
+  return apiRequest(`/counselor/appointments/${encodeURIComponent(appointmentId)}/complete`, { method: "PATCH", body: {} });
 }
