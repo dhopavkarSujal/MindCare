@@ -21,7 +21,7 @@ export function CounselorDashboard({ email, name }: Props) {
 
       <section className="mc-role-card" id="schedule">
         <div className="mc-role-card__heading"><div><h2><CalendarCheck size={18} /> Your schedule</h2><p>Assigned appointments will appear here once your staff profile is connected.</p></div></div>
-        <div className="mc-role-empty mc-role-empty--large"><span className="mc-role-empty__large-icon"><ClipboardList size={24} /></span><strong>Your counselor schedule is ready for integration</strong><span>MindCare currently stores counselor directory listings separately from authenticated user accounts. The backend does not yet link your counselor login to a specific counselor record or provide counselor-scoped appointment endpoints, so this page intentionally does not show another student's bookings.</span></div>
+        <div className="mc-role-empty mc-role-empty--large"><span className="mc-role-empty__large-icon"><ClipboardList size={24} /></span><strong>Your counselor schedule is ready for integration</strong><span>MindCare currently stores counselor directory listings separately from authenticated user accounts. The backend does not yet link your counselor login to a specific counselor record or provide counselor-scoped appointment endpoints, so this page intentionally does not show another student&apos;s bookings.</span></div>
       </section>
 
       <section className="mc-role-card" id="workspace-guide">
@@ -29,11 +29,11 @@ export function CounselorDashboard({ email, name }: Props) {
         <div className="mc-role-guide-grid">
           <article><span><ShieldCheck size={17} /></span><h3>Protect confidentiality</h3><p>Only open personal records that you are explicitly authorized to access for a valid support purpose.</p></article>
           <article><span><CalendarCheck size={17} /></span><h3>Keep appointments clear</h3><p>Once scheduling is connected, use the assigned schedule to review session times and availability.</p></article>
-          <article><span><Users size={17} /></span><h3>Offer supportive guidance</h3><p>Use respectful, non-judgmental communication and follow your organization's referral and safety procedures.</p></article>
+          <article><span><Users size={17} /></span><h3>Offer supportive guidance</h3><p>Use respectful, non-judgmental communication and follow your organization&apos;s referral and safety procedures.</p></article>
         </div>
       </section>
 
-      <div className="mc-role-privacy-note"><ShieldCheck size={17} /><p><strong>Next integration step:</strong> an administrator needs to link this account to a counselor record. The backend should then expose counselor-only endpoints for the counselor's own appointments and availability before those controls are enabled here.</p></div>
+      <div className="mc-role-privacy-note"><ShieldCheck size={17} /><p><strong>Next integration step:</strong> an administrator needs to link this account to a counselor record. The backend should then expose counselor-only endpoints for the counselor&apos;s own appointments and availability before those controls are enabled here.</p></div>
     </RoleDashboardShell>
   );
 }
