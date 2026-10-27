@@ -1,18 +1,24 @@
 import { getApiBaseUrl } from "@/lib/config";
+import { parseMindCareRole, type MindCareRole } from "@/lib/auth/roles";
 
 type BackendMeResponse = {
   data?: {
-    user?: unknown;
+    user?: {
+      role?: unknown;
+    };
   };
 };
 
 /**
- * The existing MindCare API exposes GET /auth/me and expects a Supabase bearer
- * token. Verification is skipped only when no API base URL is configured.
+ * Verify a Supabase bearer token through Express /auth/me and return the
+ * application role stored by the backend. Role-based routes fail closed if
+ * that profile cannot be read.
  */
-export async function verifyBackendProfile(accessToken: string): Promise<void> {
+export async function verifyBackendProfile(accessToken: string): Promise<{ role: MindCareRole }> {
   const apiBase = getApiBaseUrl();
-  if (!apiBase) return;
+  if (!apiBase) {
+    throw new Error("MindCare's API URL is not configured. Set NEXT_PUBLIC_API_URL and restart the frontend.");
+  }
 
   let response: Response;
   try {
@@ -48,9 +54,12 @@ export async function verifyBackendProfile(accessToken: string): Promise<void> {
     throw new Error("The MindCare API returned an unreadable profile response.");
   }
 
-  if (!payload?.data?.user) {
+  const role = parseMindCareRole(payload?.data?.user?.role);
+  if (!role) {
     throw new Error(
-      "Your account was authenticated, but MindCare could not load your application profile. Check the backend profile setup.",
+      "MindCare authenticated your account, but no valid application role was returned. Ask an administrator to check your user profile.",
     );
   }
+
+  return { role };
 }
