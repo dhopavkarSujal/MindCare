@@ -317,6 +317,7 @@ export function ChatThreadPage({ conversationId }: { conversationId: string }) {
   const endRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const stickToBottom = useRef(true);
+  const pendingMessageCounter = useRef(0);
 
   const loadThread = useCallback(async () => {
     setLoading(true);
@@ -389,7 +390,7 @@ export function ChatThreadPage({ conversationId }: { conversationId: string }) {
     const text = rawText.trim();
     if (!text || sending || loading) return;
 
-    const tempId = retryId ?? `pending-${Date.now()}`;
+    const tempId = retryId ?? `pending-${++pendingMessageCounter.current}`;
     stickToBottom.current = true;
     setError("");
     setSending(true);
