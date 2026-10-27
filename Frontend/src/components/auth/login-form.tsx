@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, LoaderCircle, ShieldCheck } from "lucide-react";
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { getNextPathFromBrowser } from "@/lib/auth/navigation";
+import { getRoleDestination } from "@/lib/auth/roles";
 import { getSupabaseBrowserClient } from "@/lib/supabase/auth-client";
 import { verifyBackendProfile } from "@/lib/auth/verify-backend-profile";
 
@@ -60,8 +61,8 @@ export function LoginForm() {
         throw new Error("We couldn't start your session. Please try signing in again.");
       }
 
-      await verifyBackendProfile(data.session.access_token);
-      router.replace(getNextPathFromBrowser());
+      const profile = await verifyBackendProfile(data.session.access_token);
+      router.replace(getRoleDestination(profile.role, getNextPathFromBrowser()));
       router.refresh();
     } catch (caught) {
       setError(
