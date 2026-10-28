@@ -3,7 +3,10 @@ import {
   createCounsellor,
   getActiveCounsellors,
   getAdminCounsellors,
+  getAdminCounsellorUsers,
   getCounsellorSlots,
+  linkCounsellorUser,
+  updateCounsellor,
 } from "../services/counsellor.service.js";
 
 const UUID_PATTERN = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
@@ -186,5 +189,71 @@ export async function adminGetCounsellorsController(req, res) {
     });
   } catch (error) {
     return handleError(res, error, "Failed to fetch administrative counsellors.");
+  }
+}
+
+
+// GET /api/admin/counselor-users — authenticated counselor accounts available for linking.
+export async function adminGetCounsellorUsersController(_req, res) {
+  try {
+    const users = await getAdminCounsellorUsers();
+    return res.status(200).json({
+      success: true,
+      message: "Counsellor accounts fetched successfully.",
+      data: users.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        linkedCounsellorId: user.counsellorProfile?.id ?? null,
+        linkedCounsellorName: user.counsellorProfile?.name ?? null,
+      })),
+    });
+  } catch (error) {
+    return handleError(res, error, "Failed to fetch counsellor accounts.");
+  }
+}
+
+// PATCH /api/admin/counsellors/:counsellorId/account
+export async function adminLinkCounsellorUserController(req, res) {
+  const { counsellorId } = req.params;
+  if (!UUID_PATTERN.test(counsellorId)) return badRequest(res, "counsellorId must be a valid UUID.");
+  const body = req.body ?? {};
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return badRequest(res, "Request body must be a JSON object.");
+  }
+  if (body.userId !== null && (typeof body.userId !== "string" || !UUID_PATTERN.test(body.userId))) {
+    return badRequest(res, "userId must be a valid application-user UUID or null.");
+  }
+  try {
+    const profile = await linkCounsellorUser(counsellorId, body.userId);
+    return res.status(200).json({
+      success: true,
+      message: body.userId ? "Counsellor account linked successfully." : "Counsellor account unlinked successfully.",
+      data: {
+        id: profile.id,
+        userId: profile.userId,
+        user: profile.user,
+      },
+    });
+  } catch (error) {
+    return handleError(res, error, "Failed to link counsellor account.");
+  }
+}
+
+// PATCH /api/admin/counsellors/:counsellorId — publish or hide the directory profile.
+export async function adminUpdateCounsellorController(req, res) {
+  const { counsellorId } = req.params;
+  if (!UUID_PATTERN.test(counsellorId)) return badRequest(res, "counsellorId must be a valid UUID.");
+  const body = req.body ?? {};
+  if (typeof body.isActive !== "boolean") return badRequest(res, "isActive must be a boolean.");
+  try {
+    const counsellor = await updateCounsellor(counsellorId, { isActive: body.isActive });
+    return res.status(200).json({
+      success: true,
+      message: `Counsellor profile ${body.isActive ? "published" : "hidden"} successfully.`,
+      data: counsellor,
+    });
+  } catch (error) {
+    return handleError(res, error, "Failed to update counsellor profile.");
   }
 }

@@ -25,6 +25,14 @@ function toAppointmentDto(appointment) {
   };
 }
 
+function withStudentDto(appointment) {
+  return {
+    ...toAppointmentDto(appointment),
+    userId: appointment.userId,
+    userName: appointment.user.name,
+    userEmail: appointment.user.email,
+  };
+}
 
 export async function getAdminAppointments(status = "") {
   const where = status ? { status: status.toUpperCase() } : {};
@@ -32,24 +40,19 @@ export async function getAdminAppointments(status = "") {
     where,
     include: {
       counsellor: { select: { name: true } },
-      user: { select: { name: true, email: true } },
+      user: { select: { id: true, name: true, email: true } },
     },
     orderBy: [{ startsAt: "asc" }, { createdAt: "desc" }],
-    take: 100,
+    take: 200,
   });
-
-  return appointments.map((appointment) => ({
-    ...toAppointmentDto(appointment),
-    userName: appointment.user.name,
-    userEmail: appointment.user.email,
-  }));
+  return appointments.map(withStudentDto);
 }
 
 export async function getUserAppointments(userId) {
   const appointments = await prisma.appointment.findMany({
     where: { userId },
     include: { counsellor: { select: { name: true } } },
-    orderBy: { startsAt: "asc" },
+    orderBy: [{ startsAt: "asc" }, { createdAt: "desc" }],
   });
   return appointments.map(toAppointmentDto);
 }
@@ -64,6 +67,7 @@ export async function bookAppointment(userId, { counsellorId, startTime, reason 
         counsellorId,
         startsAt,
         isActive: true,
+        endsAt: { gt: now },
         counsellor: { isActive: true },
       },
       select: { id: true, startsAt: true, endsAt: true, isAvailable: true },
@@ -73,7 +77,21 @@ export async function bookAppointment(userId, { counsellorId, startTime, reason 
       throw conflict("This time slot is no longer available. Refresh availability and choose another time.");
     }
 
-    // Conditional claim is atomic: concurrent requests cannot book the same slot.
+    // Prevent the same student from having overlapping active appointments.
+    const overlappingBooking = await tx.appointment.findFirst({
+      where: {
+        userId,
+        status: { in: ["PENDING", "CONFIRMED"] },
+        startsAt: { lt: slot.endsAt },
+        endsAt: { gt: slot.startsAt },
+      },
+      select: { id: true },
+    });
+    if (overlappingBooking) {
+      throw conflict("You already have a pending or confirmed appointment during this time.");
+    }
+
+    // A conditional update serializes competing requests for the same slot.
     const claim = await tx.availabilitySlot.updateMany({
       where: { id: slot.id, isAvailable: true, isActive: true, startsAt: { gt: now } },
       data: { isAvailable: false },
@@ -84,9 +102,13 @@ export async function bookAppointment(userId, { counsellorId, startTime, reason 
 
     const appointment = await tx.appointment.create({
       data: {
-        userId, counsellorId, slotId: slot.id,
-        startsAt: slot.startsAt, endsAt: slot.endsAt,
-        reason: reason?.trim() || null, status: "PENDING",
+        userId,
+        counsellorId,
+        slotId: slot.id,
+        startsAt: slot.startsAt,
+        endsAt: slot.endsAt,
+        reason: reason?.trim() || null,
+        status: "PENDING",
       },
       include: { counsellor: { select: { name: true } } },
     });
@@ -102,13 +124,18 @@ export async function cancelUserAppointment(userId, appointmentId) {
     });
     if (!appointment) throw notFound("Appointment not found.");
     if (appointment.status === "CANCELLED") return { cancelled: true };
+    if (["REJECTED", "COMPLETED"].includes(appointment.status)) {
+      throw conflict("This appointment can no longer be cancelled.");
+    }
     if (appointment.startsAt <= new Date()) {
-      throw conflict("Past appointments cannot be cancelled.");
+      throw conflict("Appointments cannot be cancelled after the scheduled start time.");
     }
 
     await tx.appointment.update({
-      where: { id: appointment.id }, data: { status: "CANCELLED" },
+      where: { id: appointment.id },
+      data: { status: "CANCELLED" },
     });
+    // Re-open only an active, future slot; historical appointment data is retained.
     await tx.availabilitySlot.updateMany({
       where: { id: appointment.slotId, startsAt: { gt: new Date() }, isActive: true },
       data: { isAvailable: true },
@@ -125,15 +152,25 @@ export async function updateAppointmentStatus(appointmentId, status) {
     });
     if (!appointment) throw notFound("Appointment not found.");
     if (appointment.status === status) return { status: status.toLowerCase() };
-    if (appointment.status === "CANCELLED") {
-      throw conflict("A cancelled appointment cannot be reopened; the user must book an available slot.");
+
+    if (["CANCELLED", "REJECTED", "COMPLETED"].includes(appointment.status)) {
+      throw conflict("This appointment is closed and cannot be reopened. A new booking is required.");
     }
     if (status === "CONFIRMED" && appointment.status !== "PENDING") {
       throw conflict("Only pending appointments can be confirmed.");
     }
+    if (status === "REJECTED" && appointment.status !== "PENDING") {
+      throw conflict("Only pending appointments can be rejected.");
+    }
+    if (status === "CANCELLED" && appointment.startsAt <= new Date()) {
+      throw conflict("Appointments cannot be cancelled after the scheduled start time.");
+    }
 
-    await tx.appointment.update({ where: { id: appointmentId }, data: { status } });
-    if (status === "CANCELLED" && appointment.startsAt > new Date()) {
+    await tx.appointment.update({
+      where: { id: appointmentId },
+      data: { status },
+    });
+    if (["CANCELLED", "REJECTED"].includes(status) && appointment.startsAt > new Date()) {
       await tx.availabilitySlot.updateMany({
         where: { id: appointment.slotId, isActive: true, startsAt: { gt: new Date() } },
         data: { isAvailable: true },

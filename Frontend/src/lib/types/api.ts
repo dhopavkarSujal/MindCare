@@ -58,12 +58,19 @@ export type Counsellor = {
   avatarUrl?: string;
 };
 
-export type AppointmentSlot = { startTime: string; isAvailable: boolean };
+export type AppointmentStatus = "pending" | "confirmed" | "cancelled" | "rejected" | "completed";
+export type AppointmentSlot = {
+  id?: string;
+  startTime: string;
+  endTime?: string;
+  isAvailable: boolean;
+  bookingStatus?: AppointmentStatus | null;
+};
 export type Appointment = {
   appointmentId: string;
   counsellorName?: string;
   startsAt: string;
-  status: "pending" | "confirmed" | "cancelled";
+  status: AppointmentStatus;
 };
 
 
@@ -75,19 +82,61 @@ export type AdminAppointment = {
   counsellorName?: string;
   startsAt: string;
   endsAt?: string;
-  status: "pending" | "confirmed" | "cancelled";
+  status: AppointmentStatus;
   reason?: string | null;
   createdAt?: string;
 };
 
 export type AdminCounsellor = {
   id: string;
+  userId?: string | null;
+  user?: { id: string; name?: string | null; email: string } | null;
   name: string;
   specialty?: string | null;
   bio?: string | null;
+  timeZone?: string;
   isActive: boolean;
   _count?: {
     appointments?: number;
     availabilitySlots?: number;
   };
+};
+
+
+export type CounsellorAccount = {
+  id: string;
+  name?: string | null;
+  email: string;
+  linkedCounsellorId: string | null;
+  linkedCounsellorName: string | null;
+};
+
+export type CounsellorWorkspace = {
+  id: string;
+  userId?: string | null;
+  name: string;
+  specialty?: string | null;
+  bio?: string | null;
+  timeZone: string;
+  isActive: boolean;
+};
+
+export type CounsellorAppointment = {
+  appointmentId: string;
+  studentId: string;
+  studentName?: string | null;
+  studentEmail: string;
+  startsAt: string;
+  endsAt: string;
+  status: AppointmentStatus;
+  reason?: string | null;
+  createdAt: string;
+};
+
+export type CounsellorAvailabilitySlot = {
+  id: string;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+  bookingStatus: AppointmentStatus | null;
 };

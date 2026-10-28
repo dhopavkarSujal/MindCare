@@ -13,6 +13,7 @@ import consentRoutes from "./routes/consents.routes.js";
 import counsellorRoutes from "./routes/counsellors.routes.js";
 import appointmentRoutes from "./routes/appointments.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import counselorPortalRoutes from "./routes/counselor-portal.routes.js";
 
 const app = express();
 const allowedOrigins = (process.env.FRONTEND_URL ?? "http://localhost:3000")
@@ -47,6 +48,7 @@ app.use("/api/consents", consentRoutes);
 app.use("/api/counsellors", counsellorRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/counselor", counselorPortalRoutes);
 
 app.use((req, res) => res.status(404).json({
   success: false,

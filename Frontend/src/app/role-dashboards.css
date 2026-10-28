@@ -88,3 +88,30 @@
 @media (max-width:1080px) { .mc-role-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } .mc-role-counsellor-grid,.mc-role-guide-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:720px) { .mc-role-header { align-items:flex-start; padding:14px 17px; } .mc-role-header__right { align-items:flex-end; gap:8px; } .mc-role-account { display:none; } .mc-role-nav { padding:0 12px; } .mc-role-nav a { min-height:44px; padding:0 9px; font-size:11px; } .mc-role-main { padding:25px 15px 34px; } .mc-role-heading { align-items:flex-start; flex-direction:column; } .mc-role-heading .mc-button { min-height:40px; } .mc-role-stats { gap:10px; } .mc-role-stat { gap:9px; padding:13px 11px; } .mc-role-stat__icon { flex-basis:34px; width:34px; height:34px; } .mc-role-stat strong { font-size:20px; } .mc-role-card__heading { align-items:flex-start; padding:16px; } .mc-role-table th,.mc-role-table td { padding:12px 10px; } .mc-role-counsellor-grid,.mc-role-guide-grid { grid-template-columns:1fr; padding:13px; } .mc-role-footer { flex-direction:column; padding:16px 18px; gap:6px; } }
 @media (max-width:390px) { .mc-role-stats { grid-template-columns:1fr; } .mc-role-brand small { font-size:8px; } .mc-role-signout { padding:9px 10px; font-size:11px; } }
+
+
+/* Appointment workflow controls */
+.mc-role-status--rejected { color:#7b4545; border-color:#ead0d0; background:#f8eeee; }
+.mc-role-status--completed { color:#24664f; border-color:#cae5d7; background:#edf8f1; }
+.mc-role-form { display:grid; gap:16px; padding:20px 22px 24px; }
+.mc-role-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.mc-role-field { display:grid; gap:7px; min-width:0; color:var(--mc-green-deep); font-size:11px; font-weight:750; }
+.mc-role-input,.mc-role-select { width:100%; min-width:0; min-height:41px; padding:10px 11px; border:1px solid var(--mc-border); border-radius:9px; outline:none; background:#fff; color:var(--mc-body); font:inherit; font-size:12px; font-weight:500; }
+.mc-role-input:focus,.mc-role-select:focus { border-color:var(--mc-green); box-shadow:0 0 0 3px rgb(42 103 104 / 12%); }
+.mc-role-input:disabled,.mc-role-select:disabled { opacity:.55; cursor:not-allowed; }
+.mc-role-form-actions { display:flex; justify-content:flex-end; }
+.mc-role-card-actions { display:flex; flex-wrap:wrap; align-items:center; gap:7px; margin-top:14px; }
+.mc-role-card-actions .mc-button { display:inline-flex; align-items:center; gap:6px; min-height:35px; padding:8px 10px; font-size:10px; }
+.mc-role-bio { display:-webkit-box; overflow:hidden; margin-top:9px !important; min-height:0 !important; -webkit-box-orient:vertical; -webkit-line-clamp:4; }
+.mc-role-inline-note { display:flex; align-items:flex-start; gap:9px; margin:16px 22px 0; padding:12px; border:1px solid #f0dfb9; border-radius:10px; background:#fff8e7; color:#78561d; font-size:11px; line-height:1.55; }
+.mc-role-inline-note svg { flex:0 0 auto; }
+.mc-role-privacy-note--inset { margin:0 18px 18px; }
+.mc-role-table td .mc-role-action { cursor:pointer; }
+.mc-role-table td .mc-role-action:disabled { cursor:wait; }
+.mc-role-action:not(.mc-role-action--confirm):not(.mc-role-action--cancel) { color:var(--mc-green-deep); border-color:var(--mc-border); background:#f6f9f9; cursor:pointer; }
+.mc-role-action:not(.mc-role-action--confirm):not(.mc-role-action--cancel):hover:not(:disabled) { background:var(--mc-sage); }
+@media (max-width:720px) {
+  .mc-role-form { padding:16px; }
+  .mc-role-form-grid { grid-template-columns:1fr; }
+  .mc-role-card-actions { align-items:stretch; }
+}

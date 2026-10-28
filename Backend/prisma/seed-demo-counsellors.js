@@ -4,28 +4,40 @@ import { PrismaClient } from "@prisma/client";
 const TIME_ZONE = "Asia/Kolkata";
 const UTC_OFFSET = "+05:30";
 const SLOT_DURATION_MINUTES = 45;
-const DAYS_AHEAD = 14;
+const WORKING_DAYS_AHEAD = 9;
 const DAILY_START_TIMES = ["10:00", "15:00"];
 
 // These are deliberately fictional and visibly marked as demo records.
 const DEMO_COUNSELLORS = [
   {
-    id: "d3a00001-6e27-4db2-bf5f-000000000001",
-    name: "MindCare Demo Counsellor 01",
-    specialty: "Academic stress & study habits · DEMO",
-    bio: "Fictional showcase profile for testing the MindCare V2 booking flow. This is not a real counsellor, and appointments made against this profile are not real mental-health appointments.",
+    id: "670944f9-4c59-4573-a62f-b37879fe51e2",
+    name: "Dr. Aanya Sharma",
+    specialty: "Academic Stress & Exam Anxiety",
+    bio: "Demo profile: Provides supportive guidance for students managing exam pressure, academic expectations, study-related stress, and performance anxiety. Encourages practical coping strategies, balanced routines, and realistic academic goals.",
   },
   {
-    id: "d3a00002-6e27-4db2-bf5f-000000000002",
-    name: "MindCare Demo Counsellor 02",
-    specialty: "Anxiety coping skills · DEMO",
-    bio: "Fictional showcase profile for testing the MindCare V2 booking flow. This is not a real counsellor, and appointments made against this profile are not real mental-health appointments.",
+    id: "07a6f4e5-61b5-40bc-9d2b-056fc7a91349",
+    name: "Dr. Arjun Patel",
+    specialty: "Self-confidence & Personal Growth",
+    bio: "Demo profile: Supports students who want to strengthen self-confidence, manage self-doubt, communicate more effectively, and approach setbacks with a constructive mindset.",
   },
   {
-    id: "d3a00003-6e27-4db2-bf5f-000000000003",
-    name: "MindCare Demo Counsellor 03",
-    specialty: "Student wellbeing · DEMO",
-    bio: "Fictional showcase profile for testing the MindCare V2 booking flow. This is not a real counsellor, and appointments made against this profile are not real mental-health appointments.",
+    id: "1bed011d-f501-4ba5-a41f-0f48c84a961c",
+    name: "Dr. Rohan Mehta",
+    specialty: "Emotional Well-being & Stress Management",
+    bio: "Demo profile: Focuses on helping students understand everyday emotions, recognize sources of stress, develop healthy coping habits, and build confidence in handling challenging situations.",
+  },
+  {
+    id: "576ca231-0518-4dc8-9de8-2ee53c2b3248",
+    name: "Neha Kulkarni",
+    specialty: "Relationships, Communication & Adjustment",
+    bio: "Demo profile: Provides a supportive space for exploring friendship challenges, communication difficulties, college adjustment, and balancing academic responsibilities with social life.",
+  },
+  {
+    id: "c4a09d80-3b7d-4425-af74-c1f18335eae2",
+    name: "Priya Desai",
+    specialty: "Study Habits & Time Management",
+    bio: "Demo profile: Offers student-focused guidance on planning study sessions, managing competing deadlines, overcoming procrastination, setting achievable goals, and creating sustainable daily routines.",
   },
 ];
 
@@ -75,10 +87,12 @@ function slotTimesForShowcase() {
   const today = dateInTimeZone(new Date(), TIME_ZONE);
   const slots = [];
 
-  // Create a rolling two-week demo calendar starting tomorrow; skip Sundays.
-  for (let dayOffset = 1; dayOffset <= DAYS_AHEAD; dayOffset += 1) {
+  // Generate 18 showcase slots per counsellor: two slots on each of the next nine non-Sunday days.
+  let workingDaysAdded = 0;
+  for (let dayOffset = 1; workingDaysAdded < WORKING_DAYS_AHEAD; dayOffset += 1) {
     const date = addCalendarDays(today, dayOffset);
     if (isSunday(date)) continue;
+    workingDaysAdded += 1;
 
     for (const time of DAILY_START_TIMES) {
       const startsAt = new Date(`${date}T${time}:00${UTC_OFFSET}`);

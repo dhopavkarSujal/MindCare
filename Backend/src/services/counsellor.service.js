@@ -128,10 +128,109 @@ export async function getAdminCounsellors() {
   return prisma.counsellor.findMany({
     orderBy: [{ isActive: "desc" }, { name: "asc" }],
     include: {
+      user: { select: { id: true, name: true, email: true } },
       _count: {
         select: { availabilitySlots: true, appointments: true },
       },
     },
     take: 100,
+  });
+}
+
+
+export async function getAdminCounsellorUsers() {
+  return prisma.user.findMany({
+    where: { role: "COUNSELOR", supabaseAuthId: { not: null } },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      counsellorProfile: { select: { id: true, name: true } },
+    },
+    orderBy: [{ name: "asc" }, { email: "asc" }],
+  });
+}
+
+export async function linkCounsellorUser(counsellorId, userId) {
+  const profile = await prisma.counsellor.findUnique({
+    where: { id: counsellorId },
+    select: { id: true, userId: true },
+  });
+  if (!profile) throw notFound("Counsellor profile not found.");
+
+  if (userId === null) {
+    if (profile.userId) {
+      const activeAppointment = await prisma.appointment.findFirst({
+        where: {
+          counsellorId,
+          status: { in: ["PENDING", "CONFIRMED"] },
+          endsAt: { gt: new Date() },
+        },
+        select: { id: true },
+      });
+      if (activeAppointment) {
+        throw conflict("This counsellor has pending or confirmed appointments. Resolve them before unlinking the account.");
+      }
+    }
+    return prisma.counsellor.update({
+      where: { id: counsellorId },
+      data: { userId: null },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      role: true,
+      supabaseAuthId: true,
+      counsellorProfile: { select: { id: true } },
+    },
+  });
+  if (!user) throw notFound("Application user not found.");
+  if (user.role !== "COUNSELOR") {
+    throw conflict("Only application users with the COUNSELOR role can be linked to a counsellor profile.");
+  }
+  if (!user.supabaseAuthId) {
+    throw conflict("This counsellor user is not linked to Supabase Auth yet.");
+  }
+  if (user.counsellorProfile && user.counsellorProfile.id !== counsellorId) {
+    throw conflict("This account is already linked to another counsellor profile.");
+  }
+  if (profile.userId && profile.userId !== userId) {
+    const activeAppointment = await prisma.appointment.findFirst({
+      where: {
+        counsellorId,
+        status: { in: ["PENDING", "CONFIRMED"] },
+        endsAt: { gt: new Date() },
+      },
+      select: { id: true },
+    });
+    if (activeAppointment) {
+      throw conflict("This profile has pending or confirmed appointments. Resolve them before changing the linked account.");
+    }
+  }
+
+  return prisma.counsellor.update({
+    where: { id: counsellorId },
+    data: { userId },
+    include: { user: { select: { id: true, name: true, email: true } } },
+  });
+}
+
+export async function updateCounsellor(counsellorId, input) {
+  const existing = await prisma.counsellor.findUnique({
+    where: { id: counsellorId },
+    select: { id: true },
+  });
+  if (!existing) throw notFound("Counsellor profile not found.");
+  return prisma.counsellor.update({
+    where: { id: counsellorId },
+    data: { isActive: input.isActive },
+    select: {
+      id: true, name: true, specialty: true, bio: true,
+      avatarUrl: true, timeZone: true, isActive: true, userId: true,
+    },
   });
 }
