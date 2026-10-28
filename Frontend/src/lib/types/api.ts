@@ -65,3 +65,29 @@ export type Appointment = {
   startsAt: string;
   status: "pending" | "confirmed" | "cancelled";
 };
+
+
+export type AdminAppointment = {
+  appointmentId: string;
+  userName?: string | null;
+  userEmail?: string | null;
+  counsellorId?: string;
+  counsellorName?: string;
+  startsAt: string;
+  endsAt?: string;
+  status: "pending" | "confirmed" | "cancelled";
+  reason?: string | null;
+  createdAt?: string;
+};
+
+export type AdminCounsellor = {
+  id: string;
+  name: string;
+  specialty?: string | null;
+  bio?: string | null;
+  isActive: boolean;
+  _count?: {
+    appointments?: number;
+    availabilitySlots?: number;
+  };
+};

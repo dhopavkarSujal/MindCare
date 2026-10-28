@@ -4,6 +4,7 @@ import "./globals.css";
 import "./marketing.css";
 import "./marketing-botanical.css";
 import "./features.css";
+import "./role-dashboards.css";
 
 const inter = Inter({
   subsets: ["latin"],

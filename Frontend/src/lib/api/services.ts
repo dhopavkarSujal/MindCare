@@ -1,5 +1,5 @@
 import { apiRequest, unwrapData } from "@/lib/api/client";
-import type { Appointment, AppointmentSlot, Conversation, Counsellor, JournalEntry, MoodEntry, Resource } from "@/lib/types/api";
+import type { AdminAppointment, AdminCounsellor, Appointment, AppointmentSlot, Conversation, Counsellor, JournalEntry, MoodEntry, Resource } from "@/lib/types/api";
 
 function arrayFrom<T>(payload: unknown): T[] {
   const result = unwrapData<unknown>(payload);
@@ -45,3 +45,21 @@ export async function getProfile() { return unwrapData<Record<string, unknown>>(
 export async function updateProfile(input: { name?: string; preferences?: Record<string, unknown> }) { return apiRequest("/profile", { method: "PUT", body: input }); }
 export async function getConsents() { return arrayFrom<{ permission: string; enabled: boolean }>(await apiRequest("/consents")); }
 export async function updateConsent(input: { permission: string; enabled: boolean }) { return apiRequest("/consents", { method: "POST", body: input }); }
+
+
+/** Admin-only endpoints; the Express API enforces the ADMIN role. */
+export async function getAdminAppointments(status = "") {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  const suffix = params.size ? `?${params.toString()}` : "";
+  return arrayFrom<AdminAppointment>(await apiRequest(`/admin/appointments${suffix}`));
+}
+export async function getAdminCounsellors() {
+  return arrayFrom<AdminCounsellor>(await apiRequest("/admin/counsellors"));
+}
+export async function updateAdminAppointmentStatus(id: string, status: "confirmed" | "cancelled") {
+  return apiRequest(`/admin/appointments/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    body: { status },
+  });
+}
